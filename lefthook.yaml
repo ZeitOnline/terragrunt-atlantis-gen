@@ -1,0 +1,6 @@
+remotes:
+  - git_url: git@github.com:ZeitOnline/ops-pre-commit.git
+    ref: main
+    configs:
+      - lefthook-mandatory.yml
+      - lefthook-mandatory-commit-msg.yml

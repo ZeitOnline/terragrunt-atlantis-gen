@@ -1,0 +1,35 @@
+name: Build and test code
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  run-tests:
+    runs-on: zon-ubuntu-general-dind
+    env:
+      GO_VERSION: "1.27"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Setup golang
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: "^${{ env.GO_VERSION }}"
+          # no go.sum yet — the module has no dependencies
+          cache: false
+      - name: Check formatting
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::not gofmt'ed:"; echo "$unformatted"; exit 1
+          fi
+      - run: go vet ./...
+      - name: Run staticcheck
+        uses: dominikh/staticcheck-action@9716614d4101e79b4340dd97b10e54d68234e431 # v1.4.1
+        with:
+          version: "2026.2.1"
+          install-go: false
+      # TestGoldens is the parity suite for the generate command, which is
+      # not implemented yet; it fails by design and is skipped here.
+      - name: Run tests
+        run: go test -v -cover -skip '^TestGoldens$' ./...

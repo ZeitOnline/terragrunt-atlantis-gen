@@ -1,0 +1,18 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "dependencyDashboard": true,
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "lockFileMaintenance": { "enabled": true },
+  "schedule": ["before 5am every weekday"],
+  "ignorePaths": ["testdata/**"],
+  "packageRules": [
+    {
+      "description": "Group (minor) Go package updates into single PRs",
+      "groupName": "gomod",
+      "automerge": false,
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchManagers": ["gomod"]
+    }
+  ]
+}
