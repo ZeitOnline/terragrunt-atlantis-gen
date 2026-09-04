@@ -1,0 +1,16 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../root-module/*.tf*
+    - ../root-module/*.tofu*
+    - ../terraform-module/*.tf*
+    - ../terraform-module/*.tofu*
+  dir: terragrunt-module
+version: 3

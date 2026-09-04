@@ -1,0 +1,16 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - '**/*.hcl'
+    - '**/*.tf*'
+    - '**/*.tofu*'
+    - ../_env/cluster/fargate.hcl
+  dir: .
+version: 3

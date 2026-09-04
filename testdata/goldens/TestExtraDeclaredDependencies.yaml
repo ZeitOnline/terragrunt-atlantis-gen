@@ -1,0 +1,14 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - some_extra_dep
+    - ../test_file.json
+  dir: child
+version: 3

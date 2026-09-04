@@ -1,0 +1,15 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- apply_requirements:
+  - approved
+  - mergeable
+  autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+  dir: .
+version: 3
