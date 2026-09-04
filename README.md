@@ -44,12 +44,15 @@ The `atlantis_*` settings locals and marker mode are deliberately dropped:
 - **`--project-hcl-files` marker mode.** No ZeitOnline repo uses it.
 - **`terragrunt.hcl.json` units.** `terragrunt find` does not discover them;
   convert to HCL first. None exist in our repos.
+- **TAC's HCL validation errors** (e.g. a non-string entry in
+  `extra_atlantis_dependencies`) — the wrapper reads no HCL, so it cannot
+  reproduce them; Terragrunt itself reports broken configs.
 
 The parity cases covering dropped features are annotated with `Unsupported`
-in `internal/goldens/cases.go` (13 of 64) and skipped by the suite; their
+in `internal/goldens/cases.go` (14 of 64) and skipped by the suite; their
 goldens stay as documentation of TAC's behaviour. Skipping stays gated by
-TAC's own skip fixture (TestSkippingModules), whose migrated form replaces
-the `atlantis_skip` locals with `exclude` blocks.
+TAC's own skip fixture (TestSkippingModules), whose migrated form adds
+`exclude` blocks next to the `atlantis_skip` locals.
 
 ## Goldens
 
@@ -69,6 +72,13 @@ deliberately.
   ```sh
   go run ./tools/freeze -tac /path/to/terragrunt-atlantis-config
   ```
+
+`testdata/migrated/` is the same fixture tree after the one-off migration
+described below (marks, var-file mirrors, `exclude` blocks in the skip
+fixture) — the state a real repo is in when the wrapper runs. The parity
+suite replays the wrapper against it; `TestMigratedFixturesMatchTACGoldens`
+(gated on `TAC_BIN`) proves it stays additive by replaying TAC over it
+against the same goldens.
 
 ## Tests
 

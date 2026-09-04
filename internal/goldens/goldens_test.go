@@ -42,7 +42,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// TestGoldens replays every supported case with the wrapper against the
+// migrated fixture tree — marks and exclude blocks in place, exactly the
+// state a real repo is in when the wrapper runs.
 func TestGoldens(t *testing.T) {
+	root := migratedRoot(t)
 	for _, c := range Cases {
 		t.Run(c.Name, func(t *testing.T) {
 			if c.Unsupported != "" {
@@ -52,7 +56,7 @@ func TestGoldens(t *testing.T) {
 			if err != nil {
 				t.Fatalf("missing golden (run tools/freeze): %v", err)
 			}
-			got, err := c.Replay(binPath, repoRoot)
+			got, err := c.Replay(binPath, root)
 			if err != nil {
 				t.Fatal(err)
 			}
