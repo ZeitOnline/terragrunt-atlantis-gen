@@ -45,6 +45,9 @@ func TestMain(m *testing.M) {
 func TestGoldens(t *testing.T) {
 	for _, c := range Cases {
 		t.Run(c.Name, func(t *testing.T) {
+			if c.Unsupported != "" {
+				t.Skip(c.Unsupported)
+			}
 			want, err := os.ReadFile(filepath.Join(repoRoot, c.GoldenPath()))
 			if err != nil {
 				t.Fatalf("missing golden (run tools/freeze): %v", err)

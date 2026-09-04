@@ -6,6 +6,51 @@ Go wrapper around the Terragrunt CLI that produces the same `atlantis.yaml` as
 Terragrunt as a library, the wrapper asks the `terragrunt` binary — the same
 one that runs the plans — for the structure via `terragrunt find --json`.
 
+## Scope
+
+The wrapper reproduces TAC's output for the surface ZeitOnline actually uses:
+dependency discovery, declared file dependencies (as `mark_as_read`), local
+module inspection, and the flags the pre-workflow hooks pass.
+
+Skipping a unit is Terragrunt-native: a unit whose evaluated `exclude` block
+covers `plan` (actions `all` or `plan`) gets no Atlantis project. The block
+lives in the unit — or in an included parent to hide a whole subtree; a child
+overrides with `if = false`. Terragrunt evaluates it, the wrapper reads it
+from the same `find --json --exclude` call:
+
+```hcl
+exclude {
+  if      = true
+  actions = ["all"]
+}
+```
+
+Note the native semantics: an `exclude` block also removes the unit from
+`terragrunt run --all` — it declares "nothing runs this unit automatically",
+not just "Atlantis ignores it". The wrapper inspects the merged `exclude`
+field from `find` rather than `--queue-construct-as` filtering, because queue
+construction does not honour a child's `if = false` override of an inherited
+block (verified on Terragrunt v1.1.0).
+
+The `atlantis_*` settings locals and marker mode are deliberately dropped:
+
+- **All six settings locals** (`atlantis_workflow`,
+  `atlantis_terraform_version`, `atlantis_autoplan`, `atlantis_skip`,
+  `atlantis_apply_requirements`, `atlantis_project`). Settings come from the
+  server-side Atlantis configuration in `atlantis-deployment` (hook flags and
+  per-repo config); skipping comes from the `exclude` block. Per-unit
+  autoplan has no terragrunt-native counterpart and is unused at ZeitOnline.
+  An `atlantis_*` settings local in a repo has no effect on the wrapper.
+- **`--project-hcl-files` marker mode.** No ZeitOnline repo uses it.
+- **`terragrunt.hcl.json` units.** `terragrunt find` does not discover them;
+  convert to HCL first. None exist in our repos.
+
+The parity cases covering dropped features are annotated with `Unsupported`
+in `internal/goldens/cases.go` (13 of 64) and skipped by the suite; their
+goldens stay as documentation of TAC's behaviour. Skipping stays gated by
+TAC's own skip fixture (TestSkippingModules), whose migrated form replaces
+the `atlantis_skip` locals with `exclude` blocks.
+
 ## Goldens
 
 `testdata/goldens/` freezes the behaviour of TAC **v2.25.1** (ZeitOnline fork,
@@ -31,8 +76,8 @@ deliberately.
 go test ./...
 ```
 
-`internal/goldens` builds the wrapper binary and replays every case through
-the real CLI against its golden — byte for byte.
+`internal/goldens` builds the wrapper binary and replays every supported case
+through the real CLI against its golden — byte for byte.
 
 ## Migrating a repo
 
@@ -77,42 +122,34 @@ locals {
 }
 ```
 
-### 3. Copy settings to atlantis-projects.yaml
+### 3. Settings locals
 
-**Copy — don't move** — the six settings locals — `atlantis_workflow`,
-`atlantis_terraform_version`, `atlantis_autoplan`, `atlantis_skip`,
-`atlantis_apply_requirements`, `atlantis_project` — as rules into
-`atlantis-projects.yaml` at the repo root:
+`atlantis_skip = true` gets a native `exclude` block **added next to it** —
+the local stays in place for TAC during the shadow phase and is removed after
+TAC is retired:
 
-- Parent configs (`root.hcl`, `env.hcl`, …, and `terragrunt.hcl` without
-  `terraform.source`) → path `<dir>/**`, at the repo root `**`.
-- Units → their exact directory path.
-- Order: parents before units, shallow before deep directories. Later rules
-  win per field — glob specificity thus reproduces the include chain.
+```hcl
+locals {
+  atlantis_skip = true # removed at cutover
+}
 
-```yaml
-version: 1
-overrides:
-  - paths: ["**"]         # was: atlantis_workflow in root.hcl
-    workflow: default
-  - paths: ["prod/**"]    # was: atlantis_apply_requirements in prod/env.hcl
-    apply_requirements: [approved, mergeable]
-  - paths: ["prod/legacy-vpc"] # was: atlantis_skip = true in that unit
-    skip: true
+exclude {
+  if      = true
+  actions = ["all"]
+}
 ```
 
-### 4. Cases that need a human decision
+Mind the semantic widening: the unit also disappears from
+`terragrunt run --all` (see Scope). Where the local sits in an included
+parent, the block goes into that parent; a child that set
+`atlantis_skip = false` gets its own block with `if = false`.
 
-- **Computed `atlantis_*` locals** (function calls, references): express them
-  as glob rules by hand — the wrapper does not evaluate HCL.
-- **`terragrunt.hcl.json` units**: convert to HCL first; `terragrunt find`
-  does not discover them.
-- **Marker files** (`--project-hcl-files`): copy their
-  `extra_atlantis_dependencies` as literal paths into the marker directory's
-  rule — nothing includes the marker, so a mark inside it is never evaluated.
-  `atlantis_project = true` becomes `project: true` in the rule.
+The other settings locals (`atlantis_workflow`, `atlantis_terraform_version`,
+`atlantis_autoplan`, `atlantis_apply_requirements`, `atlantis_project`) are
+dropped — settings come from the server-side Atlantis configuration; nothing
+to migrate.
 
-### 5. Verify
+### 4. Verify
 
 Run TAC with the flags from the pre-workflow hook before and after the
 migration; identical output proves the migration was additive:
