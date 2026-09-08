@@ -12,8 +12,6 @@ jobs:
       # The frozen TAC release the goldens were generated from; gates the
       # additivity of testdata/migrated.
       TAC_VERSION: "2.25.1"
-      # Pinned to what the Atlantis server runs (atlantis-deployment).
-      TERRAGRUNT_VERSION: "v1.1.0"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup golang
@@ -41,11 +39,7 @@ jobs:
                "${base}/terragrunt-atlantis-config_${TAC_VERSION}_checksums.txt"
           grep linux_amd64 "terragrunt-atlantis-config_${TAC_VERSION}_checksums.txt" | sha256sum -c
           tar xzf "terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz" terragrunt-atlantis-config
-      - name: Install terragrunt
-        run: |
-          wget -q "https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}/terragrunt_linux_amd64" -O /usr/local/bin/terragrunt
-          chmod +x /usr/local/bin/terragrunt
-          terragrunt --version
+      - run: terragrunt --version
       - name: Run tests
         run: TAC_BIN="$PWD/terragrunt-atlantis-config" go test -v -cover ./...
       - name: Forbid Terragrunt imports
