@@ -87,7 +87,16 @@ go test ./...
 ```
 
 `internal/goldens` builds the wrapper binary and replays every supported case
-through the real CLI against its golden — byte for byte.
+through the real CLI against its golden — byte for byte. Terragrunt ≥ 1.1
+must be on the PATH. Twelve cases carry a `Diverges` annotation: their output
+is set-equal but not byte-equal to TAC's (when_modified order — find reports
+reads sorted — and files the units genuinely read via read_terragrunt_config,
+which TAC never saw). Each is gated by a reviewed golden in
+`testdata/goldens-wrapper/`, frozen deliberately with:
+
+```sh
+go run ./tools/freeze -wrapper /path/to/terragrunt-atlantis-gen
+```
 
 ## Migrating a repo
 

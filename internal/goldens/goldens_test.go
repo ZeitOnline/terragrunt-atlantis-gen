@@ -52,7 +52,7 @@ func TestGoldens(t *testing.T) {
 			if c.Unsupported != "" {
 				t.Skip(c.Unsupported)
 			}
-			want, err := os.ReadFile(filepath.Join(repoRoot, c.GoldenPath()))
+			want, err := os.ReadFile(filepath.Join(repoRoot, c.ParityGoldenPath()))
 			if err != nil {
 				t.Fatalf("missing golden (run tools/freeze): %v", err)
 			}
@@ -61,7 +61,7 @@ func TestGoldens(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !bytes.Equal(got, want) {
-				t.Errorf("output differs from golden %s\n--- want\n%s\n--- got\n%s", c.GoldenPath(), want, got)
+				t.Errorf("output differs from golden %s\n--- want\n%s\n--- got\n%s", c.ParityGoldenPath(), want, got)
 			}
 		})
 	}

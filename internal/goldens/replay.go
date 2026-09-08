@@ -70,11 +70,22 @@ func errorLines(stderr []byte) []byte {
 	return out
 }
 
-// GoldenPath returns the case's golden file path relative to the repo root.
+// GoldenPath returns the case's TAC golden file path relative to the repo
+// root.
 func (c Case) GoldenPath() string {
 	ext := ".yaml"
 	if c.WantErr {
 		ext = ".err"
 	}
 	return filepath.Join("testdata", "goldens", c.Name+ext)
+}
+
+// ParityGoldenPath returns the golden the wrapper is gated by: the TAC
+// golden, or the reviewed wrapper golden for cases that deliberately
+// diverge (see Case.Diverges).
+func (c Case) ParityGoldenPath() string {
+	if c.Diverges != "" {
+		return filepath.Join("testdata", "goldens-wrapper", c.Name+".yaml")
+	}
+	return c.GoldenPath()
 }
