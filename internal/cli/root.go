@@ -13,17 +13,18 @@ import (
 )
 
 // Main runs the root command and returns the process exit code.
-func Main() int {
-	if err := newRootCmd().Execute(); err != nil {
+func Main(version string) int {
+	if err := newRootCmd(version).Execute(); err != nil {
 		return 1
 	}
 	return 0
 }
 
-func newRootCmd() *cobra.Command {
+func newRootCmd(version string) *cobra.Command {
 	root := &cobra.Command{
 		Use:          "terragrunt-atlantis-gen",
 		Short:        "Generate atlantis.yaml for Terragrunt repos via the Terragrunt CLI",
+		Version:      version,
 		SilenceUsage: true,
 	}
 	root.AddCommand(newGenerateCmd())
