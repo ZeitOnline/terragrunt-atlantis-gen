@@ -1,6 +1,6 @@
 locals {
   extra_atlantis_dependencies = [
-    "${get_parent_terragrunt_dir()}/terragrunt.hcl"
+    mark_as_read("${get_parent_terragrunt_dir()}/terragrunt.hcl")
   ]
 }
 

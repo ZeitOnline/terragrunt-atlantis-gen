@@ -3,7 +3,7 @@ include {
 }
 
 terraform {
-  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+  source = "git::https://example.com/module.git?ref=v1.0.0"
   extra_arguments "conditional_vars" {
     commands = [
       "apply",

@@ -9,8 +9,8 @@ jobs:
     runs-on: zon-ubuntu-general-dind
     env:
       GO_VERSION: "1.27"
-      # The frozen TAC release the goldens were generated from; gates the
-      # additivity of testdata/migrated.
+      # The frozen TAC release the goldens were generated from; TestTACGoldens
+      # replays it over the fixture tree.
       TAC_VERSION: "2.25.1"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6

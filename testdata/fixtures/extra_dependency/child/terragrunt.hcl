@@ -1,10 +1,10 @@
 terraform {
-  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+  source = "git::https://example.com/module.git?ref=v1.0.0"
 }
 
 locals {
   extra_atlantis_dependencies = [
-    "some_extra_dep",
-    find_in_parent_folders("test_file.json")
+    mark_as_read("some_extra_dep"),
+    mark_as_read(find_in_parent_folders("test_file.json"))
   ]
 }

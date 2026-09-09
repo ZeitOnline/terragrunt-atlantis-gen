@@ -1,10 +1,14 @@
-// Command freeze runs the frozen TAC binary over every golden case and
-// writes the outputs to testdata/goldens/. Run it from the repo root:
+// Command freeze regenerates the goldens by running a binary over every case.
+// Run it from the repo root:
 //
 //	go run ./tools/freeze -tac /path/to/terragrunt-atlantis-config
+//	go run ./tools/freeze -wrapper /path/to/terragrunt-atlantis-gen
 //
-// The goldens define "same as TAC" for the wrapper; regenerating them is a
-// deliberate act, never part of a normal test run.
+// -tac writes TAC's output: to testdata/goldens for byte-matching cases and
+// to testdata/goldens-tac for diverging ones. -wrapper writes the wrapper's
+// output to testdata/goldens for the diverging cases only; everything else
+// is TAC's by definition. Regenerating is a deliberate act, never part of a
+// normal test run.
 package main
 
 import (
@@ -18,7 +22,7 @@ import (
 
 func main() {
 	tac := flag.String("tac", "", "path to the terragrunt-atlantis-config binary to freeze")
-	wrapper := flag.String("wrapper", "", "path to the wrapper binary; freezes the reviewed wrapper goldens for diverging cases instead")
+	wrapper := flag.String("wrapper", "", "path to the wrapper binary; freezes the reviewed goldens of the diverging cases")
 	flag.Parse()
 	if (*tac == "") == (*wrapper == "") {
 		fmt.Fprintln(os.Stderr, "usage: freeze -tac <tac binary> | -wrapper <wrapper binary>")
@@ -32,32 +36,22 @@ func main() {
 	if _, err := os.Stat(filepath.Join(repoRoot, "testdata", "fixtures")); err != nil {
 		fatal(fmt.Errorf("run from the repo root: %w", err))
 	}
-
-	// TAC goldens replay on the pristine fixtures; wrapper goldens on the
-	// migrated tree, like the parity suite.
-	bin, replayRoot, goldensDir := *tac, repoRoot, "goldens"
-	if *wrapper != "" {
-		bin = *wrapper
-		replayRoot = filepath.Join(repoRoot, "testdata", "migrated")
-		goldensDir = "goldens-wrapper"
-		if err := os.MkdirAll(filepath.Join(replayRoot, "internal", "goldens"), 0o755); err != nil {
+	for _, dir := range []string{"goldens", "goldens-tac"} {
+		if err := os.MkdirAll(filepath.Join(repoRoot, "testdata", dir), 0o755); err != nil {
 			fatal(err)
 		}
-	}
-	if err := os.MkdirAll(filepath.Join(repoRoot, "testdata", goldensDir), 0o755); err != nil {
-		fatal(err)
 	}
 
 	failed := 0
 	for _, c := range goldens.Cases {
-		path := c.GoldenPath()
+		bin, path := *tac, c.TACGoldenPath()
 		if *wrapper != "" {
 			if c.Diverges == "" {
 				continue
 			}
-			path = c.ParityGoldenPath()
+			bin, path = *wrapper, c.GoldenPath()
 		}
-		got, err := c.Replay(bin, replayRoot)
+		got, err := c.Replay(bin, repoRoot)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "FAIL %s: %v\n", c.Name, err)
 			failed++

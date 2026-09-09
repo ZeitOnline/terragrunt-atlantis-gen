@@ -48,37 +48,38 @@ The `atlantis_*` settings locals and marker mode are deliberately dropped:
   `extra_atlantis_dependencies`) — the wrapper reads no HCL, so it cannot
   reproduce them; Terragrunt itself reports broken configs.
 
-The parity cases covering dropped features are annotated with `Unsupported`
-in `internal/goldens/cases.go` (14 of 64) and skipped by the suite; their
-goldens stay as documentation of TAC's behaviour. Skipping stays gated by
-TAC's own skip fixture (TestSkippingModules), whose migrated form adds
-`exclude` blocks next to the `atlantis_skip` locals.
+The corpus has no cases for dropped features. Skipping stays gated by TAC's
+own skip fixture (`skip`), which carries `exclude` blocks next to the
+`atlantis_skip` locals so both binaries agree on it.
 
 ## Goldens
 
-`testdata/goldens/` freezes the behaviour of TAC **v2.25.1** (ZeitOnline fork,
-release binary `darwin_arm64`, checksum-verified): one golden file per
-(fixture, flags) pair from TAC's `cmd/generate_test.go`, produced by real CLI
-invocations. They define "same as TAC" for this project and only change
-deliberately.
+`testdata/goldens/` holds one golden per case in `internal/goldens/cases.go`:
+the output the wrapper must produce, byte for byte. A case is a (fixture,
+flags) pair named `<fixture>[_<flag variant>]`. 27 of the 39 goldens are the
+frozen output of TAC **v2.25.1** (ZeitOnline fork, release binary,
+checksum-verified), produced by real CLI invocations; they define "same as
+TAC" for this project and only change deliberately.
 
-- `testdata/fixtures/`, `testdata/fixtures_errors/`: taken unchanged from
-  TAC v2.25.1 (`test/fixtures/`, MIT license in `testdata/LICENSE-fixtures`).
-- `internal/goldens/cases.go`: the 64 cases, generated from
-  `generate_test.go`; the fork's four pure unit tests of internal helpers are
-  deliberately not included.
-- Re-freezing (only ever deliberately, never as part of a normal test run):
+The other twelve cases carry a `Diverges` annotation: their output is
+set-equal but not byte-equal to TAC's (when_modified order — find reports
+reads sorted — and files the units genuinely read via read_terragrunt_config,
+which TAC never saw). Their golden is reviewed rather than frozen, and TAC's
+own output for them lives in `testdata/goldens-tac/`.
 
-  ```sh
-  go run ./tools/freeze -tac /path/to/terragrunt-atlantis-config
-  ```
+`testdata/fixtures/` derives from TAC v2.25.1's `test/fixtures/` (MIT
+license in `testdata/LICENSE-fixtures`), reduced to the wrapper's scope and
+in the state a real repo is in when the wrapper runs: read marks, var-file
+mirrors and `exclude` blocks, as described under "Migrating a repo". TAC
+reads the tree unchanged — the marks are invisible to it — so one tree
+serves both binaries.
 
-`testdata/migrated/` is the same fixture tree after the one-off migration
-described below (marks, var-file mirrors, `exclude` blocks in the skip
-fixture) — the state a real repo is in when the wrapper runs. The parity
-suite replays the wrapper against it; `TestMigratedFixturesMatchTACGoldens`
-(gated on `TAC_BIN`) proves it stays additive by replaying TAC over it
-against the same goldens.
+Re-freezing (only ever deliberately, never as part of a normal test run):
+
+```sh
+go run ./tools/freeze -tac /path/to/terragrunt-atlantis-config   # TAC's output
+go run ./tools/freeze -wrapper /path/to/terragrunt-atlantis-gen  # diverging cases
+```
 
 ## Tests
 
@@ -86,17 +87,12 @@ against the same goldens.
 go test ./...
 ```
 
-`internal/goldens` builds the wrapper binary and replays every supported case
-through the real CLI against its golden — byte for byte. Terragrunt ≥ 1.1
-must be on the PATH. Twelve cases carry a `Diverges` annotation: their output
-is set-equal but not byte-equal to TAC's (when_modified order — find reports
-reads sorted — and files the units genuinely read via read_terragrunt_config,
-which TAC never saw). Each is gated by a reviewed golden in
-`testdata/goldens-wrapper/`, frozen deliberately with:
-
-```sh
-go run ./tools/freeze -wrapper /path/to/terragrunt-atlantis-gen
-```
+`internal/goldens` builds the wrapper binary and replays every case through
+the real CLI against its golden — byte for byte. Terragrunt ≥ 1.1 must be on
+the PATH. `TestTACGoldens`, gated on `TAC_BIN` pointing at the frozen TAC
+binary, replays TAC over the same fixtures against its goldens: the goldens
+stay TAC's output rather than the wrapper's reading of it, and the marks in
+the fixtures are proven invisible to TAC.
 
 ## Migrating a repo
 
@@ -124,7 +120,7 @@ locals {
   # Read-marks: terragrunt find reports these, which is how Atlantis
   # discovery and git-filtered runs know this unit depends on them.
   data_reads = [
-    try(mark_glob_as_read("${get_repo_root()}/data/humans/**/*.yaml"), null),
+    mark_glob_as_read("${get_repo_root()}/data/humans/**/*.yaml"),
   ]
 }
 ```
@@ -152,9 +148,11 @@ place, so both tools read the same declaration:
 Traps, valid in both modes (all verified on Terragrunt v1.1.0 and TAC
 v2.25.1):
 
-- **`try()` around `mark_glob_as_read` is not optional** as long as any TAC
-  binary still parses the repo: TAC's embedded Terragrunt (v0.86.2) does not
-  know the function and would abort the whole generation without it.
+- **Wrap marks in `try(…, fallback)` only while TAC still parses the repo**
+  (shadow mode): TAC's embedded Terragrunt (v0.86.2) does not know
+  `mark_glob_as_read` and aborts the whole generation without the guard.
+  With a paired hook cutover the guard is unnecessary — plain marks, and
+  Terragrunt ≥ 1.1 becomes the requirement for parsing the repo at all.
 - **Mark every `**` glob with and without its `**` segment**: terragrunt's
   `**/` requires at least one directory, Atlantis's `when_modified` matching
   requires zero or more — files at the glob's top level would silently stop

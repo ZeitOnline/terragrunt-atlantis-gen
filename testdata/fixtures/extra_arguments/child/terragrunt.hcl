@@ -3,7 +3,7 @@ include {
 }
 
 terraform {
-  source = "git::git@github.com:transcend-io/terraform-aws-fargate-container?ref=v0.0.4"
+  source = "git::https://example.com/module.git?ref=v1.0.0"
   extra_arguments "conditional_vars" {
     commands = [
       "apply",
@@ -31,4 +31,15 @@ terraform {
 
 inputs = {
   foo = "bar"
+}
+
+locals {
+  # read-marks for the var-files above; terragrunt find reports them
+  atlantis_var_file_reads = [
+    mark_as_read("${get_parent_terragrunt_dir()}/terraform.tfvars"),
+    mark_as_read("${get_parent_terragrunt_dir()}/${get_env("TF_VAR_env", "dev")}.tfvars"),
+    mark_as_read("${get_parent_terragrunt_dir()}/${get_env("TF_VAR_region", "us-east-1")}.tfvars"),
+    mark_as_read("${get_terragrunt_dir()}/${get_env("TF_VAR_env", "dev")}.tfvars"),
+    mark_as_read("${get_terragrunt_dir()}/${get_env("TF_VAR_region", "us-east-1")}.tfvars"),
+  ]
 }

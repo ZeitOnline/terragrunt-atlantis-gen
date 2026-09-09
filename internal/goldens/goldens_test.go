@@ -42,26 +42,21 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// TestGoldens replays every supported case with the wrapper against the
-// migrated fixture tree — marks and exclude blocks in place, exactly the
-// state a real repo is in when the wrapper runs.
+// TestGoldens replays every case with the wrapper against its golden, byte
+// for byte.
 func TestGoldens(t *testing.T) {
-	root := migratedRoot(t)
 	for _, c := range Cases {
 		t.Run(c.Name, func(t *testing.T) {
-			if c.Unsupported != "" {
-				t.Skip(c.Unsupported)
-			}
-			want, err := os.ReadFile(filepath.Join(repoRoot, c.ParityGoldenPath()))
+			want, err := os.ReadFile(filepath.Join(repoRoot, c.GoldenPath()))
 			if err != nil {
 				t.Fatalf("missing golden (run tools/freeze): %v", err)
 			}
-			got, err := c.Replay(binPath, root)
+			got, err := c.Replay(binPath, repoRoot)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if !bytes.Equal(got, want) {
-				t.Errorf("output differs from golden %s\n--- want\n%s\n--- got\n%s", c.ParityGoldenPath(), want, got)
+				t.Errorf("output differs from golden %s\n--- want\n%s\n--- got\n%s", c.GoldenPath(), want, got)
 			}
 		})
 	}
