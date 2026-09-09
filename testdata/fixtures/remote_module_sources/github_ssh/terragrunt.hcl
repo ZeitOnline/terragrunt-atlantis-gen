@@ -2,7 +2,3 @@
 terraform {
   source = "git@github.com:hashicorp/example.git"
 }
-
-inputs = {
-  foo = "bar"
-}

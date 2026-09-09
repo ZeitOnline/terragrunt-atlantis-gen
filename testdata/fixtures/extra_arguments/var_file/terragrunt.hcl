@@ -1,5 +1,5 @@
-include {
-  path = find_in_parent_folders()
+include "root" {
+  path = find_in_parent_folders("root.hcl")
 }
 
 terraform {
@@ -20,13 +20,9 @@ terraform {
   }
 }
 
-inputs = {
-  foo = "bar"
-}
-
 locals {
-  # read-marks for the var-files above; terragrunt find reports them
-  atlantis_var_file_reads = [
+  # mirrors the var-files above, which find cannot see
+  reads = [
     mark_as_read("${get_terragrunt_dir()}/../../../../common_vars/apps/consul/sg.tfvars"),
     mark_as_read("${get_terragrunt_dir()}/main.tfvars"),
   ]

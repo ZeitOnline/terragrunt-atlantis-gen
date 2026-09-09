@@ -11,10 +11,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Ported from TAC's parse_tf.go: nested local module sources in a
-// directory's terraform files, recursively, as <dir>/*.tf* and
-// <dir>/*.tofu* globs. `terragrunt find` does not recurse into module
-// calls, so this pass stays.
+// Ported from TAC's parse_tf.go. `terragrunt find --reading` lists what a
+// unit's config reads — includes, marks, the files of a local
+// terraform.source — but Terragrunt (v1.1) never opens Terraform code, so a
+// `module` block with a relative source (./, ../) is invisible to it. The
+// module still has to land in when_modified: otherwise a change to a shared
+// module triggers no plan, and Atlantis gives no error for a missing path.
+// Applies to a unit's local source directory and to the unit's own
+// directory (units that keep their code in place have no source at all),
+// recursively, since modules call modules; emitted as <dir>/*.tf* globs,
+// the shape TAC produced. This is how iam and terraform-infra share
+// modules (modules/gcp/humans calls ../iam-memberships).
 
 var localModuleSourcePrefixes = []string{"./", "../", ".\\", "..\\"}
 

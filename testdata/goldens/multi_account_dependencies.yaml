@@ -8,7 +8,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../env.hcl
   dir: network-account/eu-west-1/network/transit-gateway
 - autoplan:
@@ -17,7 +17,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../../../terragrunt.hcl
+    - ../../../../../root.hcl
     - ../../env.hcl
     - ../../../env-a/network/vpc/terragrunt.hcl
     - ../../../env-a/env.hcl
@@ -30,7 +30,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../../../terragrunt.hcl
+    - ../../../../../root.hcl
     - ../../env.hcl
     - ../../../../../network-account/eu-west-1/network/transit-gateway/terragrunt.hcl
     - ../../../../../network-account/eu-west-1/network/env.hcl

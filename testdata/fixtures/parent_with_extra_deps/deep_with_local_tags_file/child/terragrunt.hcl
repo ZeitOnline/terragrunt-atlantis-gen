@@ -1,5 +1,5 @@
-include {
-  path = "${find_in_parent_folders("parent")}/terragrunt.hcl"
+include "root" {
+  path = find_in_parent_folders("root.hcl")
 }
 
 terraform {
@@ -7,11 +7,7 @@ terraform {
 }
 
 locals {
-  extra_atlantis_dependencies = [
+  reads = [
     mark_as_read("some_child_dep"),
   ]
-}
-
-inputs = {
-  foo = "bar"
 }

@@ -8,6 +8,13 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../terragrunt.hcl
-  dir: skip_false
+  dir: apply_only
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../root.hcl
+  dir: overridden
 version: 3

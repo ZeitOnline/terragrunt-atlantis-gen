@@ -2,7 +2,3 @@
 terraform {
   source = "http://example.com/vpc-module.zip"
 }
-
-inputs = {
-  foo = "bar"
-}

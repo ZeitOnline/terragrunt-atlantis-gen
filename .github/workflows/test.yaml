@@ -9,9 +9,6 @@ jobs:
     runs-on: zon-ubuntu-general-dind
     env:
       GO_VERSION: "1.27"
-      # The frozen TAC release the goldens were generated from; TestTACGoldens
-      # replays it over the fixture tree.
-      TAC_VERSION: "2.25.1"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup golang
@@ -32,16 +29,9 @@ jobs:
         with:
           version: "2026.2.1"
           install-go: false
-      - name: Fetch the frozen terragrunt-atlantis-config
-        run: |
-          base="https://github.com/ZeitOnline/terragrunt-atlantis-config/releases/download/v${TAC_VERSION}"
-          wget -q "${base}/terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz" \
-               "${base}/terragrunt-atlantis-config_${TAC_VERSION}_checksums.txt"
-          grep linux_amd64 "terragrunt-atlantis-config_${TAC_VERSION}_checksums.txt" | sha256sum -c
-          tar xzf "terragrunt-atlantis-config_${TAC_VERSION}_linux_amd64.tar.gz" terragrunt-atlantis-config
       - run: terragrunt --version
       - name: Run tests
-        run: TAC_BIN="$PWD/terragrunt-atlantis-config" go test -v -cover ./...
+        run: go test -v -cover ./...
       - name: Forbid Terragrunt imports
         run: |
           if go list -deps ./... | grep gruntwork-io/terragrunt; then

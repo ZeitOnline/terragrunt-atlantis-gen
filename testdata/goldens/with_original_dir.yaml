@@ -8,8 +8,8 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../common/terragrunt.hcl
-    - ../terragrunt.hcl
+    - ../common.hcl
+    - ../root.hcl
     - ../dependency/terragrunt.hcl
   dir: child
 - autoplan:
@@ -18,6 +18,6 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../terragrunt.hcl
+    - ../root.hcl
   dir: dependency
 version: 3

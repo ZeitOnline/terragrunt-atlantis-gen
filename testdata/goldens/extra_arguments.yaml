@@ -8,7 +8,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../terragrunt.hcl
+    - ../root.hcl
     - dev.tfvars
     - us-east-1.tfvars
     - ../dev.tfvars
@@ -21,7 +21,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../terragrunt.hcl
+    - ../root.hcl
   dir: no_files_at_all
 - autoplan:
     enabled: false
@@ -29,7 +29,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../terragrunt.hcl
+    - ../root.hcl
     - ../dev.tfvars
     - dev.tfvars
     - us-east-1.tfvars
@@ -41,7 +41,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../terragrunt.hcl
+    - ../root.hcl
     - ../terraform.tfvars
   dir: only_required_files
 - autoplan:
@@ -50,7 +50,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../terragrunt.hcl
+    - ../root.hcl
     - ../../../../common_vars/apps/consul/sg.tfvars
     - main.tfvars
   dir: var_file

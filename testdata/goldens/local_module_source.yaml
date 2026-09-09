@@ -8,9 +8,59 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../root-module/*.tf*
-    - ../root-module/*.tofu*
-    - ../terraform-module/*.tf*
-    - ../terraform-module/*.tofu*
-  dir: terragrunt-module
+    - ../root.hcl
+    - ../modules/root/*.tf*
+    - ../modules/root/*.tofu*
+    - ../modules/another/*.tf*
+    - ../modules/another/*.tofu*
+    - ../modules/shared/*.tf*
+    - ../modules/shared/*.tofu*
+    - ../modules/shared/nested/*.tf*
+    - ../modules/shared/nested/*.tofu*
+  dir: absolute
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../root.hcl
+    - ../modules/another/*.tf*
+    - ../modules/another/*.tofu*
+    - ../modules/shared/*.tf*
+    - ../modules/shared/*.tofu*
+    - ../modules/shared/nested/*.tf*
+    - ../modules/shared/nested/*.tofu*
+  dir: in_place
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../modules/root/*.tf*
+    - ../modules/root/*.tofu*
+    - ../modules/another/*.tf*
+    - ../modules/another/*.tofu*
+    - ../modules/shared/*.tf*
+    - ../modules/shared/*.tofu*
+    - ../modules/shared/nested/*.tf*
+    - ../modules/shared/nested/*.tofu*
+  dir: relative
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../root.hcl
+    - ../modules/root/*.tf*
+    - ../modules/root/*.tofu*
+    - ../modules/another/*.tf*
+    - ../modules/another/*.tofu*
+    - ../modules/shared/*.tf*
+    - ../modules/shared/*.tofu*
+    - ../modules/shared/nested/*.tf*
+    - ../modules/shared/nested/*.tofu*
+  dir: subdir
 version: 3
