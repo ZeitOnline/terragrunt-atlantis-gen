@@ -7,12 +7,15 @@ package generate
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/ghodss/yaml"
 )
@@ -39,6 +42,16 @@ type Options struct {
 	DefaultApplyRequirements []string
 	FilterPaths              []string
 	OutputPath               string
+
+	// LogWriter receives human-readable progress (the Atlantis job log);
+	// nil silences it.
+	LogWriter io.Writer
+}
+
+func (o Options) logf(format string, args ...any) {
+	if o.LogWriter != nil {
+		fmt.Fprintf(o.LogWriter, format+"\n", args...)
+	}
 }
 
 // The output structs are TAC's, marshalled with the same library (ghodss)
@@ -102,6 +115,8 @@ func Run(opts Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	start := time.Now()
+	opts.logf("discovering units via %s (%s)", opts.TerragruntBin, terragruntVersion(opts.TerragruntBin))
 
 	units, err := findUnits(opts.TerragruntBin, rootAbs, "--dependencies", "--include", "--reading", "--exclude")
 	if err != nil {
@@ -162,6 +177,9 @@ func Run(opts Options) ([]byte, error) {
 		if keep != nil && !keep[path] {
 			continue
 		}
+		if b.units[path].Exclude.ExcludesPlan() {
+			opts.logf("excluded %s (exclude block covers plan)", path)
+		}
 		project, err := b.createProject(path)
 		if err != nil {
 			return nil, err
@@ -169,6 +187,7 @@ func Run(opts Options) ([]byte, error) {
 		if project == nil {
 			continue
 		}
+		opts.logf("project %s (%d watched paths)", project.Dir, len(project.Autoplan.WhenModified))
 		if opts.PreserveProjects {
 			updated := false
 			for i := range config.Projects {
@@ -195,6 +214,7 @@ func Run(opts Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	opts.logf("%d units -> %d projects in %s", len(b.units), len(config.Projects), time.Since(start).Round(time.Millisecond))
 	if strings.Contains(runtime.GOOS, "windows") {
 		yamlBytes = bytes.ReplaceAll(yamlBytes, []byte("\n"), []byte("\r\n"))
 	}
@@ -514,4 +534,14 @@ func sortedIncludePaths(byLabel map[string]string) []string {
 	}
 	sort.Strings(paths)
 	return paths
+}
+
+// terragruntVersion asks the binary once, for the job log — the server's
+// Terragrunt version decides glob and discovery semantics.
+func terragruntVersion(bin string) string {
+	out, err := exec.Command(bin, "--version").Output()
+	if err != nil {
+		return "version unknown"
+	}
+	return strings.TrimSpace(string(out))
 }

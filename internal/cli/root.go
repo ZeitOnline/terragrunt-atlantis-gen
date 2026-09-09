@@ -27,11 +27,11 @@ func newRootCmd(version string) *cobra.Command {
 		Version:      version,
 		SilenceUsage: true,
 	}
-	root.AddCommand(newGenerateCmd())
+	root.AddCommand(newGenerateCmd(version))
 	return root
 }
 
-func newGenerateCmd() *cobra.Command {
+func newGenerateCmd(version string) *cobra.Command {
 	var opts generate.Options
 	var numExecutors int64
 	var createParentProject bool
@@ -52,6 +52,8 @@ func newGenerateCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.LogWriter = cmd.ErrOrStderr()
+			fmt.Fprintf(opts.LogWriter, "terragrunt-atlantis-gen %s\n", version)
 			yamlBytes, err := generate.Run(opts)
 			if err != nil {
 				return err
