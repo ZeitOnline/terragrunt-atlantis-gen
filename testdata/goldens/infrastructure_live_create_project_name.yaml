@@ -1,0 +1,83 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/mysql.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../env.hcl
+    - ../../region.hcl
+  dir: non-prod/us-east-1/qa/mysql
+  name: non-prod_us-east-1_qa_mysql
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/webserver-cluster.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../env.hcl
+    - ../../region.hcl
+  dir: non-prod/us-east-1/qa/webserver-cluster
+  name: non-prod_us-east-1_qa_webserver-cluster
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/mysql.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../../region.hcl
+    - ../env.hcl
+  dir: non-prod/us-east-1/stage/mysql
+  name: non-prod_us-east-1_stage_mysql
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/webserver-cluster.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../../region.hcl
+    - ../env.hcl
+  dir: non-prod/us-east-1/stage/webserver-cluster
+  name: non-prod_us-east-1_stage_webserver-cluster
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/mysql.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../env.hcl
+    - ../../region.hcl
+  dir: prod/us-east-1/prod/mysql
+  name: prod_us-east-1_prod_mysql
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/webserver-cluster.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../env.hcl
+    - ../../region.hcl
+  dir: prod/us-east-1/prod/webserver-cluster
+  name: prod_us-east-1_prod_webserver-cluster
+version: 3

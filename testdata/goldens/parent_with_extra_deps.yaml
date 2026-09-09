@@ -8,11 +8,11 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../parent/terragrunt.hcl
+    - ../../root.hcl
     - some_child_dep
     - some_parent_dep
     - ../file_in_parent_of_child.json
-    - ../../parent/folder_under_parent/common_tags.hcl
+    - ../../shared/common_tags.hcl
   dir: deep/child
 - autoplan:
     enabled: false
@@ -20,11 +20,11 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../parent/terragrunt.hcl
+    - ../../root.hcl
     - local_tags.yaml
     - some_child_dep
     - some_parent_dep
     - ../file_in_parent_of_child.json
-    - ../../parent/folder_under_parent/common_tags.hcl
+    - ../../shared/common_tags.hcl
   dir: deep_with_local_tags_file/child
 version: 3

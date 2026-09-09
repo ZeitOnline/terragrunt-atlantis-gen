@@ -2,7 +2,3 @@
 terraform {
   source = "git::https://example.com/vpc.git"
 }
-
-inputs = {
-  foo = "bar"
-}

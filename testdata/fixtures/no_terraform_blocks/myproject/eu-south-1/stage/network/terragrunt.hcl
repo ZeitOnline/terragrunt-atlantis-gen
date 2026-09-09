@@ -1,13 +1,11 @@
-include {
-  path = find_in_parent_folders()
+include "root" {
+  path = find_in_parent_folders("root.hcl")
 }
 
 locals {
-  # Automatically load environment-level and region-level variables
   environment_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
   region_vars      = read_terragrunt_config(find_in_parent_folders("region.hcl"))
 
-  # Extract out common variables for reuse
   env            = local.environment_vars.locals.environment
   region         = local.region_vars.locals.aws_region
   azs            = local.region_vars.locals.region_azs

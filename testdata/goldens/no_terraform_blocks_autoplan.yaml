@@ -8,7 +8,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../../../account.hcl
     - ../env.hcl
     - ../../region.hcl
@@ -22,7 +22,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../../../account.hcl
     - ../env.hcl
     - ../../region.hcl
@@ -35,7 +35,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
@@ -47,7 +47,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
@@ -58,7 +58,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../terragrunt.hcl
+    - ../../../root.hcl
     - ../../account.hcl
     - ../env.hcl
     - ../region.hcl
@@ -69,7 +69,7 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
-    - ../../../terragrunt.hcl
+    - ../../../root.hcl
     - ../../account.hcl
     - ../env.hcl
     - ../region.hcl

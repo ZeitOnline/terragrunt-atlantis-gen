@@ -1,5 +1,5 @@
-include {
-  path = find_in_parent_folders()
+include "root" {
+  path = find_in_parent_folders("root.hcl")
 }
 
 terraform {
@@ -13,9 +13,6 @@ terraform {
       "refresh"
     ]
 
-    # Small note: get_env can't really be supported very well here.
-    # In a case like this, I'd use a for loop to construct
-    # `extra_atlantis_dependencies` in locals for all possible regions
     optional_var_files = [
       "${get_parent_terragrunt_dir()}/${get_env("TF_VAR_env", "dev")}.tfvars",
       "${get_parent_terragrunt_dir()}/${get_env("TF_VAR_region", "us-east-1")}.tfvars",
@@ -25,13 +22,9 @@ terraform {
   }
 }
 
-inputs = {
-  foo = "bar"
-}
-
 locals {
-  # read-marks for the var-files above; terragrunt find reports them
-  atlantis_var_file_reads = [
+  # mirrors the var-files above, which find cannot see
+  reads = [
     mark_as_read("${get_parent_terragrunt_dir()}/${get_env("TF_VAR_env", "dev")}.tfvars"),
     mark_as_read("${get_parent_terragrunt_dir()}/${get_env("TF_VAR_region", "us-east-1")}.tfvars"),
     mark_as_read("${get_terragrunt_dir()}/${get_env("TF_VAR_env", "dev")}.tfvars"),

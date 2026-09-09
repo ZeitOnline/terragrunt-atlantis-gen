@@ -2,12 +2,19 @@ package goldens
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+// -update rewrites the goldens from the wrapper's current output instead of
+// comparing against them. Deliberate only: the resulting diff is what a
+// reviewer approves.
+var update = flag.Bool("update", false, "rewrite testdata/goldens from the current output")
 
 var (
 	repoRoot string
@@ -47,17 +54,42 @@ func TestMain(m *testing.M) {
 func TestGoldens(t *testing.T) {
 	for _, c := range Cases {
 		t.Run(c.Name, func(t *testing.T) {
-			want, err := os.ReadFile(filepath.Join(repoRoot, c.GoldenPath()))
-			if err != nil {
-				t.Fatalf("missing golden (run tools/freeze): %v", err)
-			}
 			got, err := c.Replay(binPath, repoRoot)
 			if err != nil {
 				t.Fatal(err)
+			}
+			path := filepath.Join(repoRoot, c.GoldenPath())
+			if *update {
+				if err := os.WriteFile(path, got, 0o644); err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			want, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatalf("missing golden (run go test ./internal/goldens -update): %v", err)
 			}
 			if !bytes.Equal(got, want) {
 				t.Errorf("output differs from golden %s\n--- want\n%s\n--- got\n%s", c.GoldenPath(), want, got)
 			}
 		})
+	}
+}
+
+// TestGoldensBelongToCases fails on golden files no case produces; -update
+// never removes them, so a renamed or dropped case would leave one behind.
+func TestGoldensBelongToCases(t *testing.T) {
+	cases := make(map[string]bool, len(Cases))
+	for _, c := range Cases {
+		cases[c.Name] = true
+	}
+	entries, err := os.ReadDir(filepath.Join(repoRoot, "testdata", "goldens"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if !cases[strings.TrimSuffix(e.Name(), ".yaml")] {
+			t.Errorf("testdata/goldens/%s has no case", e.Name())
+		}
 	}
 }

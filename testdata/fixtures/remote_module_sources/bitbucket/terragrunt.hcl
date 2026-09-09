@@ -2,7 +2,3 @@
 terraform {
   source = "bitbucket.org/hashicorp/tf-test-git"
 }
-
-inputs = {
-  foo = "bar"
-}

@@ -2,7 +2,3 @@
 terraform {
   source = "git::ssh://username@example.com/storage.git"
 }
-
-inputs = {
-  foo = "bar"
-}

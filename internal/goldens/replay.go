@@ -6,7 +6,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
+
+const fixturesDir = "testdata/fixtures/"
 
 // Replay runs bin's generate command for the case from the repo root and
 // returns the produced output file.
@@ -24,16 +27,21 @@ func (c Case) Replay(bin, repoRoot string) ([]byte, error) {
 		}
 	}
 
-	args := append([]string{"generate", "--output", out}, c.Args...)
+	// Plain concatenation: a trailing slash in Fixture must reach --root.
+	root := fixturesDir + c.Fixture
 	if c.AbsRoot {
-		for i, a := range args {
-			if a == "--root" && i+1 < len(args) {
-				args[i+1], err = filepath.Abs(filepath.Join(repoRoot, args[i+1]))
-				if err != nil {
-					return nil, err
-				}
-			}
+		root, err = filepath.Abs(filepath.Join(repoRoot, root))
+		if err != nil {
+			return nil, err
 		}
+	}
+	args := append([]string{"generate", "--output", out, "--root", root}, c.Flags...)
+	if len(c.Filter) > 0 {
+		globs := make([]string, len(c.Filter))
+		for i, f := range c.Filter {
+			globs[i] = fixturesDir + c.Fixture + "/" + f
+		}
+		args = append(args, "--filter", strings.Join(globs, ","))
 	}
 
 	cmd := exec.Command(bin, args...)
@@ -46,18 +54,7 @@ func (c Case) Replay(bin, repoRoot string) ([]byte, error) {
 	return os.ReadFile(out)
 }
 
-// GoldenPath returns the golden the wrapper is gated by, relative to the
-// repo root: TAC's frozen output, or the reviewed wrapper output for cases
-// that deliberately diverge (see Case.Diverges).
+// GoldenPath returns the case's golden file, relative to the repo root.
 func (c Case) GoldenPath() string {
 	return filepath.Join("testdata", "goldens", c.Name+".yaml")
-}
-
-// TACGoldenPath returns the golden TAC is gated by: the same file as the
-// wrapper's, except for diverging cases, whose TAC output lives apart.
-func (c Case) TACGoldenPath() string {
-	if c.Diverges != "" {
-		return filepath.Join("testdata", "goldens-tac", c.Name+".yaml")
-	}
-	return c.GoldenPath()
 }

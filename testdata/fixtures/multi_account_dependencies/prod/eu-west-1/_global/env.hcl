@@ -1,3 +1,3 @@
 locals {
-  env                  = "global-region"
+  env = "global-region"
 }

@@ -2,7 +2,3 @@
 terraform {
   source = "hg::http://example.com/vpc.hg"
 }
-
-inputs = {
-  foo = "bar"
-}

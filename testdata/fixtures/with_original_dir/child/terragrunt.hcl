@@ -1,17 +1,13 @@
 include "root" {
-  path   = find_in_parent_folders()
+  path   = find_in_parent_folders("root.hcl")
   expose = true
 }
 
 include "common_configs" {
-  path   = "${dirname(find_in_parent_folders())}/common/terragrunt.hcl"
+  path   = find_in_parent_folders("common.hcl")
   expose = true
 }
 
 terraform {
   source = "git::https://example.com/module.git?ref=v1.0.0"
-}
-
-inputs = {
-  foo = "bar"
 }

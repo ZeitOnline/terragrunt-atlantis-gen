@@ -2,7 +2,3 @@
 terraform {
   source = "gcs::https://www.googleapis.com/storage/v1/modules/foomodule.zip"
 }
-
-inputs = {
-  foo = "bar"
-}

@@ -9,7 +9,7 @@ projects:
     - '*.tf*'
     - '*.tofu*'
     - ../../../../_envcommon/mysql.hcl
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../../../account.hcl
     - ../env.hcl
     - ../../region.hcl
@@ -21,7 +21,7 @@ projects:
     - '*.tf*'
     - '*.tofu*'
     - ../../../../_envcommon/mysql.hcl
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../../../account.hcl
     - ../../region.hcl
     - ../env.hcl
@@ -33,7 +33,7 @@ projects:
     - '*.tf*'
     - '*.tofu*'
     - ../../../../_envcommon/mysql.hcl
-    - ../../../../terragrunt.hcl
+    - ../../../../root.hcl
     - ../../../account.hcl
     - ../env.hcl
     - ../../region.hcl

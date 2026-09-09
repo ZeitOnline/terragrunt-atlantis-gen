@@ -1,3 +1,3 @@
 locals {
-  env                  = "network"
+  env = "network"
 }

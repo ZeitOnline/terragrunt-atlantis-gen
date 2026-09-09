@@ -1,4 +1,4 @@
 locals {
-  env                     = "env-a"
-  stack_name              = "Environment-a"
+  env        = "env-a"
+  stack_name = "Environment-a"
 }
