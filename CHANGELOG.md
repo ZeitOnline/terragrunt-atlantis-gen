@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.1.0...v0.2.0) (2026-09-09)
+
+
+### Features
+
+* print a job log during generate ([5e709fd](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/5e709fd1544d0a01832a9ccf6ea15deb51fad5df))
+
 ## 0.1.0 (2026-09-08)
 
 
