@@ -60,11 +60,11 @@ fixture under `testdata/fixtures/` plus generate flags, named
 `<fixture>[_<flag variant>]`.
 
 The goldens encode the output of TAC **v2.25.1** (ZeitOnline fork) with two
-deliberate differences: `when_modified` lists reads in the sorted order
-`terragrunt find` reports them, and it includes the files a unit genuinely
-reads via `read_terragrunt_config`, which TAC never saw. Bucket order, local
-module globs and project naming are TAC's, so a repo switching its
-pre-workflow hook sees no other change.
+deliberate differences: `when_modified` lists includes and reads sorted by
+path — `terragrunt find` reports neither in declaration order — and it
+includes the files a unit genuinely reads via `read_terragrunt_config`, which
+TAC never saw. Bucket order, local module globs and project naming are TAC's,
+so a repo switching its pre-workflow hook sees no other change.
 
 The fixtures derive from TAC's `test/fixtures/` (MIT license in
 `testdata/LICENSE-fixtures`), reduced to the wrapper's scope and written the

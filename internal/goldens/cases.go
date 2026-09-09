@@ -54,6 +54,10 @@ var Cases = []Case{
 	{Name: "standalone_unit", Fixture: "standalone_unit"},
 	{Name: "standalone_unit_ignore_parent_terragrunt_false", Fixture: "standalone_unit", Flags: []string{"--ignore-parent-terragrunt=false"}},
 	{Name: "with_original_dir", Fixture: "with_original_dir"},
+	// Labels sort opposite to paths (shared > root, common.hcl < root.hcl), and
+	// the two units declare them in opposite order: when_modified must list
+	// the includes sorted by path either way.
+	{Name: "multiple_includes", Fixture: "multiple_includes"},
 
 	{Name: "extra_dependency", Fixture: "extra_dependency"},
 	{Name: "extra_arguments", Fixture: "extra_arguments"},

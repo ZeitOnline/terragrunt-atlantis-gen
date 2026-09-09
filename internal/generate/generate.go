@@ -253,13 +253,8 @@ func (b *builder) dependencies(path string) ([]string, error) {
 	unitDirAbs := filepath.Join(b.rootAbs, path)
 	var deps []string
 
-	// Includes, in declaration order.
-	includes, err := orderedIncludePaths(u.Include)
-	if err != nil {
-		return nil, err
-	}
 	includeSet := map[string]bool{}
-	for _, inc := range includes {
+	for _, inc := range sortedIncludePaths(u.Include) {
 		abs := filepath.Join(b.rootAbs, inc)
 		includeSet[abs] = true
 		deps = append(deps, abs)
@@ -508,20 +503,15 @@ func readOldConfig(outputPath string) (*AtlantisConfig, error) {
 	return &config, nil
 }
 
-// orderedIncludePaths returns the include paths in declaration order. The
-// JSON object's key order carries it; map decoding would destroy it.
-func orderedIncludePaths(raw map[string]string) ([]string, error) {
-	// A single include needs no ordering; the common case.
-	if len(raw) <= 1 {
-		for _, p := range raw {
-			return []string{p}, nil
-		}
-		return nil, nil
-	}
-	paths := make([]string, 0, len(raw))
-	for _, p := range raw {
+// sortedIncludePaths returns a unit's include paths sorted by path. find
+// emits the include object keyed by label in alphabetical order (Terragrunt
+// v1.1), so declaration order is already gone; sorting by path keeps the
+// output independent of labels too.
+func sortedIncludePaths(byLabel map[string]string) []string {
+	paths := make([]string, 0, len(byLabel))
+	for _, p := range byLabel {
 		paths = append(paths, p)
 	}
 	sort.Strings(paths)
-	return paths, nil
+	return paths
 }
