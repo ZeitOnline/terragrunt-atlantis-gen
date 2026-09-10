@@ -100,6 +100,8 @@ var Cases = []Case{
 	{Name: "remote_module_sources", Fixture: "remote_module_sources"},
 	{Name: "no_terraform_blocks_autoplan", Fixture: "no_terraform_blocks", Flags: []string{"--autoplan"}},
 	{Name: "no_modules", Fixture: "no_modules"},
+	// A tree without any unit still yields a valid config.
+	{Name: "no_units", Fixture: "no_units"},
 
 	{Name: "skip", Fixture: "skip"},
 
