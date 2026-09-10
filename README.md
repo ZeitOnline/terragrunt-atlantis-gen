@@ -111,11 +111,15 @@ names the interim that applies until the change ships.
 - [gruntwork-io/terragrunt#6856](https://github.com/gruntwork-io/terragrunt/issues/6856):
   `find` reporting suppressed parse errors at WARN, plus an opt-in that fails
   on them. With it, the wrapper passes that option and a unit whose config
-  no longer parses fails the hook, as it did with TAC. Interim:
-  `terragrunt hcl validate` in front of `generate` in the hook line. It
-  exits 1 on exactly the parse errors `find` swallows, passes on a healthy
-  iam tree in either state, and costs about 3 s for 40 units. Check it
-  against a repo's tree before adding it to that repo's hook line.
+  no longer parses fails the hook, as it did with TAC. Interim, where it
+  fits: `terragrunt hcl validate` in front of `generate` in the hook line.
+  It exits 1 on exactly the parse errors `find` swallows and passes on a
+  healthy iam tree in either state, about 3 s for 40 units. It also resolves
+  `dependency` outputs, so a repo with output-bearing `dependency` blocks
+  pays for state access on every hook run, and on terraform-infra it fails
+  on two cluster-infra configs with an output-parsing error. iam qualifies,
+  its `dependencies` blocks carry no outputs; terraform-infra and
+  terraform-projects-ops do not until that is understood.
 
 ## Goldens
 
