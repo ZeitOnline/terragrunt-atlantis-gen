@@ -59,8 +59,8 @@ Atlantis decides what to plan by matching the pull request's modified files
 `when_modified` the hook generated from the head checkout. There, a deleted
 file no longer matches any `mark_glob_as_read`, and a config that read it
 through `read_terragrunt_config()` or a `dependency` block fails to parse,
-which `terragrunt find` swallows with exit 0 (the wrapper reports it from
-the debug log, see Upstream requests). Either way the file is gone from
+which `terragrunt find` swallows with exit 0 (the wrapper reads it from the
+debug log and fails the hook, see Upstream requests). Either way the file is gone from
 `when_modified` and no plan is triggered. TAC did not have this gap: it
 wrote the literal glob into the output.
 
@@ -121,8 +121,9 @@ names the interim that applies until the change ships.
   debug log. Interim: every discovery runs with `--log-level debug
   --log-format json`, and the wrapper reports each suppressed error in the
   job log as `terragrunt suppressed a parse error: <file>:<pos>: <diagnostic>`,
-  followed by a count; `--fail-on-parse-errors` turns them into a failed
-  hook, TAC's behaviour. This rides on the wording of terragrunt's debug
+  followed by a count, and fails the hook, TAC's behaviour;
+  `--fail-on-parse-errors=false` keeps the run going with the log lines
+  only. This rides on the wording of terragrunt's debug
   message, which `TestSuppressedParseErrors` pins against the Terragrunt
   version CI runs. `terragrunt hcl validate` is no substitute: it resolves
   `dependency` outputs, so it needs state access on every hook run, and it

@@ -25,11 +25,13 @@ func TestSuppressedParseErrors(t *testing.T) {
 	}
 	opts := Options{Root: root, TerragruntBin: bin, IgnoreParentTerragrunt: true, CascadeDependencies: true}
 
+	// Opted out: the run goes through and only reports.
 	var log bytes.Buffer
 	opts.LogWriter = &log
+	opts.FailOnParseErrors = false
 	out, err := Run(opts)
 	if err != nil {
-		t.Fatalf("run without --fail-on-parse-errors must succeed: %v", err)
+		t.Fatalf("run with --fail-on-parse-errors=false must succeed: %v", err)
 	}
 	for _, want := range []string{"terragrunt suppressed a parse error: reader/terragrunt.hcl:", "settings/missing.hcl", "1 parse error(s) suppressed"} {
 		if !strings.Contains(log.String(), want) {
@@ -46,6 +48,7 @@ func TestSuppressedParseErrors(t *testing.T) {
 		}
 	}
 
+	// The default: the run fails and names the config.
 	opts.FailOnParseErrors = true
 	opts.LogWriter = nil
 	if _, err := Run(opts); err == nil || !strings.Contains(err.Error(), "reader/terragrunt.hcl") {

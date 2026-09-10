@@ -48,7 +48,7 @@ type Options struct {
 	BaseRef string
 
 	// FailOnParseErrors turns the parse errors discovery suppressed into a
-	// failed run instead of job-log lines (TAC's behaviour).
+	// failed run, TAC's behaviour and the CLI default; false only logs them.
 	FailOnParseErrors bool
 
 	// LogWriter receives human-readable progress (the Atlantis job log);

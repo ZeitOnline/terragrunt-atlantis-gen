@@ -34,8 +34,8 @@ func (p *parseErrors) add(msgs []string, root, label string) {
 	}
 }
 
-// report writes every collected error to the job log and, when asked to,
-// turns them into the run's error.
+// report writes every collected error to the job log and, unless the run
+// was told to carry on, turns them into its error.
 func (p *parseErrors) report(opts Options) error {
 	if len(p.lines) == 0 {
 		return nil

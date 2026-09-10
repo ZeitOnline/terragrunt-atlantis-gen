@@ -104,17 +104,18 @@ var Cases = []Case{
 	{Name: "skip", Fixture: "skip"},
 
 	// A unit whose config does not parse (a read of a missing file) keeps its
-	// project but watches only what discovery salvaged; the run logs the
-	// suppressed error, see TestSuppressedParseErrors.
-	{Name: "parse_error", Fixture: "parse_error"},
+	// project but watches only what discovery salvaged. By default the run
+	// fails instead (TestSuppressedParseErrors); the golden needs the opt-out.
+	{Name: "parse_error_fail_on_parse_errors_false", Fixture: "parse_error", Flags: []string{"--fail-on-parse-errors=false"}},
 
 	// The fixture is the base state. At the head, the files the pull request
 	// removed are gone from when_modified and the unit whose config no
 	// longer parses lost its read silently; --base-ref restores both from
-	// the base, and the removed unit gets no project either way.
+	// the base, and the removed unit gets no project either way. The head
+	// cases opt out of failing on that parse error: the union is their point.
 	{Name: "deletions", Fixture: "deletions"},
-	{Name: "deletions_head", Fixture: "deletions", History: pullRequest},
-	{Name: "deletions_head_base_ref", Fixture: "deletions", History: pullRequest, Flags: []string{"--base-ref", "base"}},
+	{Name: "deletions_head", Fixture: "deletions", History: pullRequest, Flags: []string{"--fail-on-parse-errors=false"}},
+	{Name: "deletions_head_base_ref", Fixture: "deletions", History: pullRequest, Flags: []string{"--fail-on-parse-errors=false", "--base-ref", "base"}},
 
 	{Name: "infrastructure_live", Fixture: "infrastructure_live"},
 	{Name: "infrastructure_live_create_project_name", Fixture: "infrastructure_live", Flags: []string{"--create-project-name"}},
