@@ -1,0 +1,29 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/mysql.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../env.hcl
+    - ../../region.hcl
+  dir: prod/us-east-1/prod/mysql
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../../../../_envcommon/webserver-cluster.hcl
+    - ../../../../root.hcl
+    - ../../../account.hcl
+    - ../env.hcl
+    - ../../region.hcl
+  dir: prod/us-east-1/prod/webserver-cluster
+version: 3

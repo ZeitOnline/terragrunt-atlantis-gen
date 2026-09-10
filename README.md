@@ -52,6 +52,71 @@ The corpus has no cases for dropped features. The `skip` fixture covers the
 `exclude` semantics above: inherited from a parent, overridden by a child,
 declared in the unit itself, and an `actions` list that leaves `plan` alone.
 
+## Deleted and renamed files
+
+Atlantis decides what to plan by matching the pull request's modified files
+— deletions and the old name of a rename included — against the
+`when_modified` the hook generated from the head checkout. There, a deleted
+file no longer matches any `mark_glob_as_read`, and a config that read it
+through `read_terragrunt_config()` or a `dependency` block fails to parse,
+which `terragrunt find` swallows (exit 0, DEBUG log only; upstream request
+[gruntwork-io/terragrunt#6856](https://github.com/gruntwork-io/terragrunt/issues/6856)).
+Either way the file is gone from `when_modified` and nothing plans. TAC did
+not have this gap: it wrote the literal glob into the output.
+
+`--base-ref <ref>` closes it. Discovery runs a second time in a detached
+worktree of that ref, and every unit's includes, reads and dependency blocks
+are the union of both states. The job log names the base commit, what each
+unit watches only because of the base, and the units that exist only there.
+Those get no project: Atlantis cannot plan a directory that is gone, the
+same limit TAC had.
+
+The ref has to resolve in the hook's checkout, which depends on the
+server's checkout strategy:
+
+- `merge`: Atlantis clones the base branch in full, so
+  `--base-ref "origin/$BASE_BRANCH_NAME"` works as is.
+- `branch` (the default): the clone is `--depth=1 --single-branch` of the
+  head, so the hook fetches the base first:
+
+  ```sh
+  git fetch --depth=1 origin "$BASE_BRANCH_NAME" && terragrunt-atlantis-gen generate --base-ref FETCH_HEAD <hook flags>
+  ```
+
+A ref that does not resolve fails the hook instead of silently producing
+the head-only config. The `deletions` cases in the corpus show the head-only
+output next to the union.
+
+Removing a whole unit is the one deletion no manifest can cover: Atlantis
+plans only directories that exist, so a deleted `terragrunt.hcl` produces no
+destroy. Destroy first, delete second: with the unit still in place, run
+`atlantis plan -d <unit dir> -- -destroy`, apply, and remove the directory
+in a follow-up push. Deleting first leaves the state and the resources in
+place, and the only signal is the `exists only in <base>: no project` line
+in the job log.
+
+## Upstream requests
+
+Two Terragrunt changes would let the wrapper drop workarounds. Each entry
+names the interim that applies until the change ships.
+
+- [gruntwork-io/terragrunt#6859](https://github.com/gruntwork-io/terragrunt/issues/6859):
+  `find --reading` reporting the pattern of `mark_glob_as_read` next to its
+  matches. With it, the wrapper writes the pattern into `when_modified` as
+  TAC did, and Atlantis matches deleted files itself. `--base-ref` then only
+  covers natively read files a pull request deletes, and the second,
+  `**`-less pattern from the runbook is no longer needed for Atlantis
+  (Terragrunt's own `--filter-affected` still needs it). Interim:
+  `--base-ref`, see above.
+- [gruntwork-io/terragrunt#6856](https://github.com/gruntwork-io/terragrunt/issues/6856):
+  `find` reporting suppressed parse errors at WARN, plus an opt-in that fails
+  on them. With it, the wrapper passes that option and a unit whose config
+  no longer parses fails the hook, as it did with TAC. Interim:
+  `terragrunt hcl validate` in front of `generate` in the hook line. It
+  exits 1 on exactly the parse errors `find` swallows, passes on a healthy
+  iam tree in either state, and costs about 3 s for 40 units. Check it
+  against a repo's tree before adding it to that repo's hook line.
+
 ## Goldens
 
 `testdata/goldens/` holds one golden per case in `internal/goldens/cases.go`:
@@ -87,7 +152,9 @@ go test ./...
 
 `internal/goldens` builds the wrapper binary and replays every case through
 the real CLI against its golden — byte for byte. Terragrunt ≥ 1.1 must be on
-the PATH.
+the PATH; where that entry is a version-manager shim that only resolves
+inside configured directories, point `TERRAGRUNT_BIN` at the binary, since
+the history cases run in temporary repositories.
 
 ## Migrating a repo
 

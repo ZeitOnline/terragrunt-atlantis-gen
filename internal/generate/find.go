@@ -42,12 +42,18 @@ func (e *ExcludeConfig) ExcludesPlan() bool {
 	return false
 }
 
-// findUnits runs `terragrunt find` in root and returns the units. The extra
-// args select the detail fields (--dependencies --include --reading ...).
-func findUnits(terragruntBin, root string, extraArgs ...string) ([]Unit, error) {
+// findUnits runs `terragrunt find` and returns the units of the tree at
+// root, every path relative to root. The process runs in cwd — a
+// version-manager shim resolves the binary by working directory — and is
+// pointed at root with --working-dir when the two differ. The extra args
+// select the detail fields (--dependencies --include --reading ...).
+func findUnits(terragruntBin, cwd, root string, extraArgs ...string) ([]Unit, error) {
 	args := append([]string{"find", "--json"}, extraArgs...)
+	if root != cwd {
+		args = append(args, "--working-dir", root)
+	}
 	cmd := exec.Command(terragruntBin, args...)
-	cmd.Dir = root
+	cmd.Dir = cwd
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
