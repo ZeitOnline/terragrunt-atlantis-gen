@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.2.0...v0.3.0) (2026-09-10)
+
+
+### Features
+
+* --base-ref watches what a unit read in the pull request's base ([0926df3](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/0926df3e5a836875601e88b66f88f5acdf990e3a))
+* --base-ref watches what a unit read in the pull request's base ([657972f](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/657972f863ba6ebaba00c6603d605df6bf1616b3))
+
+
+### Bug Fixes
+
+* resolve --filter matches like the root, dedupe base merges across includes and reads ([a6b6077](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/a6b6077ad336853401dd80d856ad14ecfe81342b))
+* treat a --root missing in the base as an empty base state ([5027c9a](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/5027c9ad317f7d67545ad9850f143c1d787a0d64))
+
 ## [0.2.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.1.0...v0.2.0) (2026-09-09)
 
 
