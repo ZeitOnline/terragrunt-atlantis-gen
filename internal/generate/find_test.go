@@ -45,11 +45,17 @@ func TestParseErrorsNormalize(t *testing.T) {
 	}, "/repo", "")
 	p.add([]string{"Suppressed parsing errors /repo/u/terragrunt.hcl:6,14-37: Error in function call; Call failed.\n\nPath: \"/repo/x.hcl\"."}, "/repo", "")
 	p.add([]string{"Suppressed parse error for /wt/v: some error"}, "/wt", "base origin/main")
+	p.add([]string{
+		"Suppressed parse error for /repo: root unit broken",
+		"Suppressed parse error for /repo-old/v: a sibling directory is not the root",
+	}, "/repo", "")
 
 	want := []string{
 		`u/terragrunt.hcl:6,14-37: Error in function call; Call failed. Path: "x.hcl".`,
 		`w/terragrunt.hcl: another error`,
 		`v: some error (in base origin/main)`,
+		`.: root unit broken`,
+		`/repo-old/v: a sibling directory is not the root`,
 	}
 	if strings.Join(p.lines, "|") != strings.Join(want, "|") {
 		t.Errorf("got %q\nwant %q", p.lines, want)

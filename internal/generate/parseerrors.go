@@ -3,6 +3,7 @@ package generate
 import (
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -19,9 +20,14 @@ func (p *parseErrors) add(msgs []string, root, label string) {
 	if p.seen == nil {
 		p.seen = map[string]bool{}
 	}
+	// "Suppressed parse error for <dir>" names a directory; for a unit at
+	// the root that is the bare root, so it becomes "." rather than staying
+	// absolute. The boundary keeps a sibling like <root>-old intact.
+	bareRoot := regexp.MustCompile(regexp.QuoteMeta(root) + `([\s:"']|$)`)
 	for _, msg := range msgs {
 		msg = suppressedParse.ReplaceAllString(msg, "")
 		msg = strings.ReplaceAll(msg, root+string(filepath.Separator), "")
+		msg = bareRoot.ReplaceAllString(msg, ".$1")
 		msg = strings.Join(strings.Fields(msg), " ") // diagnostics span lines
 		if label != "" {
 			msg = fmt.Sprintf("%s (in %s)", msg, label)
