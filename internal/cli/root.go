@@ -61,7 +61,7 @@ func newGenerateCmd(version string) *cobra.Command {
 			if opts.OutputPath != "" {
 				return os.WriteFile(opts.OutputPath, yamlBytes, 0o644)
 			}
-			fmt.Fprintln(cmd.ErrOrStderr(), string(yamlBytes))
+			fmt.Fprint(cmd.OutOrStdout(), string(yamlBytes))
 			return nil
 		},
 	}
@@ -85,7 +85,7 @@ func newGenerateCmd(version string) *cobra.Command {
 	f.BoolVar(&opts.CascadeDependencies, "cascade-dependencies", true, "When true, dependencies will cascade transitively. Default is true")
 	f.StringVar(&opts.DefaultWorkflow, "workflow", "", "Name of the workflow to be customized in the atlantis server. Default is to not set")
 	f.StringSliceVar(&opts.DefaultApplyRequirements, "apply-requirements", []string{}, "Requirements that must be satisfied before `atlantis apply` can be run")
-	f.StringVar(&opts.OutputPath, "output", "", "Path of the file where configuration will be generated. Default is not to write to file")
+	f.StringVar(&opts.OutputPath, "output", "", "Path of the file where configuration will be generated. Default is stdout")
 	f.StringSliceVar(&opts.FilterPaths, "filter", []string{}, "Comma-separated paths or glob expressions to scope down the config")
 	f.StringVar(&opts.Root, "root", pwd, "Path to the root directory of the git repo you want to build config for. Default is current dir")
 	f.StringVar(&opts.DefaultTerraformVersion, "terraform-version", "", "Default terraform version to specify for all modules")
