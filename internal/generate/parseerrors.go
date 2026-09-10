@@ -20,8 +20,7 @@ func (p *parseErrors) add(msgs []string, root, label string) {
 		p.seen = map[string]bool{}
 	}
 	for _, msg := range msgs {
-		msg = strings.TrimPrefix(msg, "Suppressed parsing errors ")
-		msg = strings.TrimPrefix(msg, "Suppressed parse error for ")
+		msg = suppressedParse.ReplaceAllString(msg, "")
 		msg = strings.ReplaceAll(msg, root+string(filepath.Separator), "")
 		msg = strings.Join(strings.Fields(msg), " ") // diagnostics span lines
 		if label != "" {

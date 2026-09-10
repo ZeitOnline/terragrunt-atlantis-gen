@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -85,11 +86,13 @@ type logLine struct {
 	Msg   string `json:"msg"`
 }
 
-// suppressedParsePrefix matches both wordings terragrunt uses ("Suppressed
-// parsing errors <file>:<pos>: ..." while parsing, "Suppressed parse error
-// for <dir>: ..." while resolving dependencies). TestSuppressedParseErrors
-// fails when a Terragrunt upgrade rewords them.
-const suppressedParsePrefix = "Suppressed pars"
+// suppressedParse matches the three wordings terragrunt v1.1 uses
+// (internal/discovery/phase_parse.go, discovery.go): "Suppressed parsing
+// errors <file>:<pos>: ..." for HCL diagnostics, "Suppressed parse error for
+// <dir>: ..." and "Suppressing parse error for <file>: ..." for a config
+// that parsed only partially. TestSuppressedParseErrors fails when an
+// upgrade rewords them; TestParseLog pins the three.
+var suppressedParse = regexp.MustCompile(`^Suppress(?:ed|ing) pars(?:e|ing) errors?(?: for)? `)
 
 // parseLog splits terragrunt's JSON log into the suppressed parse errors and
 // the lines worth showing when the command failed: errors, warnings, and
@@ -105,7 +108,7 @@ func parseLog(stderr []byte) (suppressed, loud []string) {
 			continue
 		}
 		switch {
-		case strings.HasPrefix(l.Msg, suppressedParsePrefix):
+		case suppressedParse.MatchString(l.Msg):
 			suppressed = append(suppressed, l.Msg)
 		case l.Level == "error" || l.Level == "warn":
 			loud = append(loud, l.Msg)
