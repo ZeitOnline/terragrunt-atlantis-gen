@@ -57,7 +57,18 @@ func TestParseErrorsNormalize(t *testing.T) {
 		`.: root unit broken`,
 		`/repo-old/v: a sibling directory is not the root`,
 	}
-	if strings.Join(p.lines, "|") != strings.Join(want, "|") {
-		t.Errorf("got %q\nwant %q", p.lines, want)
+	var texts, paths []string
+	for _, e := range p.items {
+		texts = append(texts, e.text)
+		paths = append(paths, e.path)
+	}
+	if strings.Join(texts, "|") != strings.Join(want, "|") {
+		t.Errorf("got %q\nwant %q", texts, want)
+	}
+	// The path is what scopes an error to units; a sibling of the root has
+	// none.
+	wantPaths := []string{"u/terragrunt.hcl", "w/terragrunt.hcl", "v", ".", ""}
+	if strings.Join(paths, "|") != strings.Join(wantPaths, "|") {
+		t.Errorf("paths %q\nwant %q", paths, wantPaths)
 	}
 }

@@ -95,7 +95,7 @@ func newGenerateCmd(version string) *cobra.Command {
 	f.BoolVar(&opts.ExecutionOrderGroups, "execution-order-groups", false, "Computes execution_order_groups for projects")
 	f.BoolVar(&opts.DependsOn, "depends-on", false, "Computes depends_on for projects. Requires --create-project-name.")
 	f.StringVar(&opts.TerragruntBin, "terragrunt-bin", "terragrunt", "The terragrunt binary to ask for the repo structure")
-	f.BoolVar(&opts.FailOnParseErrors, "fail-on-parse-errors", true, "Fail when terragrunt find suppressed a parse error: a unit whose config does not parse keeps its project but watches fewer paths. Default is enabled; =false only reports them in the log")
+	f.BoolVar(&opts.FailOnParseErrors, "fail-on-parse-errors", true, "Fail when terragrunt find suppressed a parse error in a unit the run keeps: the unit keeps its project but watches fewer paths. Default is enabled; =false only reports them in the log")
 	f.StringVar(&opts.BaseRef, "base-ref", "", "Git ref of the pull request's base (origin/main, FETCH_HEAD). Discovery runs again in a worktree of that ref so when_modified also lists what a unit read there, and files the pull request deletes or renames still trigger its plan. Default is off")
 
 	return cmd
