@@ -43,6 +43,10 @@ type Options struct {
 	FilterPaths              []string
 	OutputPath               string
 
+	// BaseRef is the pull request's base as a git ref; empty skips the base
+	// discovery (see mergeBaseState).
+	BaseRef string
+
 	// LogWriter receives human-readable progress (the Atlantis job log);
 	// nil silences it.
 	LogWriter io.Writer
@@ -115,14 +119,20 @@ func Run(opts Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// terragrunt relativizes the paths it reports against the resolved
+	// working directory; a symlinked root (/var -> /private/var on macOS)
+	// would otherwise turn a dependency into a ../../.. chain.
+	if rootAbs, err = filepath.EvalSymlinks(rootAbs); err != nil {
+		return nil, err
+	}
 	start := time.Now()
 	opts.logf("discovering units via %s (%s)", opts.TerragruntBin, terragruntVersion(opts.TerragruntBin))
 
-	units, err := findUnits(opts.TerragruntBin, rootAbs, "--dependencies", "--include", "--reading", "--exclude")
+	units, err := findUnits(opts.TerragruntBin, rootAbs, rootAbs, "--dependencies", "--include", "--reading", "--exclude")
 	if err != nil {
 		return nil, err
 	}
-	sourceUnits, err := findUnits(opts.TerragruntBin, rootAbs, "--filter", "source=**")
+	sourceUnits, err := findUnits(opts.TerragruntBin, rootAbs, rootAbs, "--filter", "source=**")
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +153,11 @@ func Run(opts Options) ([]byte, error) {
 	}
 	for _, u := range sourceUnits {
 		b.hasSource[u.Path] = true
+	}
+	if opts.BaseRef != "" {
+		if err := mergeBaseState(opts, rootAbs, b.units); err != nil {
+			return nil, err
+		}
 	}
 
 	keep, err := b.filterSet()

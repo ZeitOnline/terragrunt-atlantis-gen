@@ -1,0 +1,32 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../root.hcl
+    - ../dep/terragrunt.hcl
+  dir: consumer
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../root.hcl
+    - ../data/humans/bob.yaml
+    - ../data/humans/team/carol-moved.yaml
+  dir: humans
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
+    - ../root.hcl
+  dir: settings_reader
+version: 3

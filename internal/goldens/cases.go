@@ -1,7 +1,8 @@
 // Package goldens defines the regression corpus: every (fixture, flags) pair
 // the wrapper is gated by, replayed as CLI invocations of the built binary.
 //
-// Case names follow <fixture>[_<flag variant>]. The fixture tree under
+// Case names follow <fixture>[_head][_<flag variant>], _head marking a
+// replay at the head of a git history. The fixture tree under
 // testdata/fixtures is written the way a migrated repo looks: read marks in
 // locals, exclude blocks for skipping, var-file mirrors next to
 // extra_arguments.
@@ -16,6 +17,26 @@ type Case struct {
 	Filter  []string // --filter globs, relative to the fixture directory
 	AbsRoot bool     // pass --root as an absolute path
 	PreSeed string   // written to the output file before the run (preserve-* cases)
+
+	// History replays the case at the head of a git repository built from
+	// the fixture: the fixture as committed on branch `base`, then one commit
+	// on branch `head` applying the deletes and renames. --root is that
+	// temporary repository, absolute, so `--base-ref base` can reach the
+	// fixture state from the head state.
+	History *History
+}
+
+// History is the pull request a case replays, relative to the fixture.
+type History struct {
+	Delete []string
+	Rename map[string]string // old path -> new path
+}
+
+// pullRequest removes a glob-matched file, renames another, deletes a file
+// read via read_terragrunt_config and a whole dependency unit.
+var pullRequest = &History{
+	Delete: []string{"data/humans/alice.yaml", "settings/prod.hcl", "dep/terragrunt.hcl"},
+	Rename: map[string]string{"data/humans/team/carol.yaml": "data/humans/team/carol-moved.yaml"},
 }
 
 var Cases = []Case{
@@ -77,6 +98,14 @@ var Cases = []Case{
 	{Name: "no_modules", Fixture: "no_modules"},
 
 	{Name: "skip", Fixture: "skip"},
+
+	// The fixture is the base state. At the head, the files the pull request
+	// removed are gone from when_modified and the unit whose config no
+	// longer parses lost its read silently; --base-ref restores both from
+	// the base, and the removed unit gets no project either way.
+	{Name: "deletions", Fixture: "deletions"},
+	{Name: "deletions_head", Fixture: "deletions", History: pullRequest},
+	{Name: "deletions_head_base_ref", Fixture: "deletions", History: pullRequest, Flags: []string{"--base-ref", "base"}},
 
 	{Name: "infrastructure_live", Fixture: "infrastructure_live"},
 	{Name: "infrastructure_live_create_project_name", Fixture: "infrastructure_live", Flags: []string{"--create-project-name"}},
