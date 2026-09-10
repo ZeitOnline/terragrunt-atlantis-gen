@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.3.0...v0.4.0) (2026-09-10)
+
+
+### Features
+
+* fail on suppressed parse errors by default ([1385eab](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/1385eab303b04c3f33adb0dedc0c53989dffcc31))
+* fail on the parse errors terragrunt find suppresses ([2d8f259](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/2d8f25940909002a77870ea635fb19032fb1ff54))
+* report the parse errors terragrunt find suppresses ([79a429d](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/79a429d46e9a3d13621df0d4ee049abad8d95566))
+
+
+### Bug Fixes
+
+* count suppressed parse errors only for the units --filter keeps ([9039654](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/90396546d21601cf994f4dd673728d27fbdc9809))
+* count suppressed parse errors only for the units --filter keeps ([4905f70](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/4905f7001dd8285bdfd167d9b15310a06b595f28))
+* match every wording terragrunt uses for a suppressed parse error ([1c20d02](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/1c20d021afb5960c05e6ec6aabd6fea1716cfbc0))
+* report a root-level unit's parse error as "." instead of the absolute path ([95db72c](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/95db72cfa7d0f8f024b098b2f32d338a88ddb576))
+* write the config to stdout when --output is not given ([73eb27d](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/73eb27d6fef36db782061d3db3488adbd562b80f))
+
 ## [0.3.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.2.0...v0.3.0) (2026-09-10)
 
 
