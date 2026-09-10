@@ -59,10 +59,10 @@ Atlantis decides what to plan by matching the pull request's modified files
 `when_modified` the hook generated from the head checkout. There, a deleted
 file no longer matches any `mark_glob_as_read`, and a config that read it
 through `read_terragrunt_config()` or a `dependency` block fails to parse,
-which `terragrunt find` swallows (exit 0, DEBUG log only; upstream request
-[gruntwork-io/terragrunt#6856](https://github.com/gruntwork-io/terragrunt/issues/6856)).
-Either way the file is gone from `when_modified` and nothing plans. TAC did
-not have this gap: it wrote the literal glob into the output.
+which `terragrunt find` swallows with exit 0 (the wrapper reads it from the
+debug log and fails the hook, see Upstream requests). Either way the file is gone from
+`when_modified` and no plan is triggered. TAC did not have this gap: it
+wrote the literal glob into the output.
 
 `--base-ref <ref>` closes it. Discovery runs a second time in a detached
 worktree of that ref, and every unit's includes, reads and dependency blocks
@@ -117,16 +117,18 @@ names the interim that applies until the change ships.
   which emits `<dir>/*.tf*` globs for every nested local module.
 - [gruntwork-io/terragrunt#6856](https://github.com/gruntwork-io/terragrunt/issues/6856):
   `find` reporting suppressed parse errors at WARN, plus an opt-in that fails
-  on them. With it, the wrapper passes that option and a unit whose config
-  no longer parses fails the hook, as it did with TAC. Interim, where it
-  fits: `terragrunt hcl validate` in front of `generate` in the hook line.
-  It exits 1 on exactly the parse errors `find` swallows and passes on a
-  healthy iam tree in either state, about 3 s for 40 units. It also resolves
-  `dependency` outputs, so a repo with output-bearing `dependency` blocks
-  pays for state access on every hook run, and on terraform-infra it fails
-  on two cluster-infra configs with an output-parsing error. iam qualifies,
-  its `dependencies` blocks carry no outputs; terraform-infra and
-  terraform-projects-ops do not until that is understood.
+  on them. With it, the wrapper passes that option instead of reading the
+  debug log. Interim: every discovery runs with `--log-level debug
+  --log-format json`, and the wrapper reports each suppressed error in the
+  job log as `terragrunt suppressed a parse error: <file>:<pos>: <diagnostic>`,
+  followed by a count, and fails the hook, TAC's behaviour;
+  `--fail-on-parse-errors=false` keeps the run going with the log lines
+  only. This rides on the wording of terragrunt's debug
+  message, which `TestSuppressedParseErrors` pins against the Terragrunt
+  version CI runs. `terragrunt hcl validate` is no substitute: it resolves
+  `dependency` outputs, so it needs state access on every hook run, and it
+  fails on terraform-infra's cluster-infra configs with an output-parsing
+  error.
 
 ## Goldens
 

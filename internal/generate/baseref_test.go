@@ -51,7 +51,7 @@ func TestMergeBaseStateRootMissingInBase(t *testing.T) {
 	}
 	var log bytes.Buffer
 	units := map[string]*Unit{"unit": {Type: "unit", Path: "unit", Reading: []string{"x.hcl"}}}
-	if err := mergeBaseState(Options{BaseRef: "base", LogWriter: &log}, root, units); err != nil {
+	if err := mergeBaseState(Options{BaseRef: "base", LogWriter: &log}, root, units, &parseErrors{}); err != nil {
 		t.Fatalf("base pass must skip a root missing in the base, got: %v", err)
 	}
 	if got := units["unit"].Reading; len(got) != 1 || got[0] != "x.hcl" {

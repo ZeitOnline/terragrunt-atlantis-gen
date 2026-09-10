@@ -47,6 +47,10 @@ type Options struct {
 	// discovery (see mergeBaseState).
 	BaseRef string
 
+	// FailOnParseErrors turns the parse errors discovery suppressed into a
+	// failed run, TAC's behaviour and the CLI default; false only logs them.
+	FailOnParseErrors bool
+
 	// LogWriter receives human-readable progress (the Atlantis job log);
 	// nil silences it.
 	LogWriter io.Writer
@@ -128,14 +132,17 @@ func Run(opts Options) ([]byte, error) {
 	start := time.Now()
 	opts.logf("discovering units via %s (%s)", opts.TerragruntBin, terragruntVersion(opts.TerragruntBin))
 
-	units, err := findUnits(opts.TerragruntBin, rootAbs, rootAbs, "--dependencies", "--include", "--reading", "--exclude")
+	var parseErrs parseErrors
+	units, suppressed, err := findUnits(opts.TerragruntBin, rootAbs, rootAbs, "--dependencies", "--include", "--reading", "--exclude")
 	if err != nil {
 		return nil, err
 	}
-	sourceUnits, err := findUnits(opts.TerragruntBin, rootAbs, rootAbs, "--filter", "source=**")
+	parseErrs.add(suppressed, rootAbs, "")
+	sourceUnits, suppressed, err := findUnits(opts.TerragruntBin, rootAbs, rootAbs, "--filter", "source=**")
 	if err != nil {
 		return nil, err
 	}
+	parseErrs.add(suppressed, rootAbs, "")
 
 	b := &builder{
 		opts:      opts,
@@ -155,9 +162,12 @@ func Run(opts Options) ([]byte, error) {
 		b.hasSource[u.Path] = true
 	}
 	if opts.BaseRef != "" {
-		if err := mergeBaseState(opts, rootAbs, b.units); err != nil {
+		if err := mergeBaseState(opts, rootAbs, b.units, &parseErrs); err != nil {
 			return nil, err
 		}
+	}
+	if err := parseErrs.report(opts); err != nil {
+		return nil, err
 	}
 
 	keep, err := b.filterSet()
