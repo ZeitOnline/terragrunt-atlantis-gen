@@ -97,7 +97,7 @@ in the job log.
 
 ## Upstream requests
 
-Three Terragrunt changes would let the wrapper drop workarounds. Each entry
+Four Terragrunt changes would let the wrapper drop workarounds. Each entry
 names the interim that applies until the change ships.
 
 - [gruntwork-io/terragrunt#6859](https://github.com/gruntwork-io/terragrunt/issues/6859):
@@ -129,6 +129,11 @@ names the interim that applies until the change ships.
   `dependency` outputs, so it needs state access on every hook run, and it
   fails on terraform-infra's cluster-infra configs with an output-parsing
   error.
+- [gruntwork-io/terragrunt#6863](https://github.com/gruntwork-io/terragrunt/issues/6863):
+  `find --reading` resolving a relative `terraform.source` inherited through
+  `include` against the unit, as a run does. With it, the explicit module
+  marks such repos carry today (keycloak) go. Interim: the trap in the
+  runbook, an absolute source or an explicit mark.
 
 ## Development
 
@@ -254,10 +259,15 @@ Traps (verified on Terragrunt v1.1.0):
 - **One `locals` block per config.** `find` suppresses parse errors during
   discovery, so a duplicate `locals` block silently drops every mark in the
   file — merge marks into the existing block.
-- **`find` does not mark an include-inherited local `terraform.source`**
-  (its `source=**` filter resolves it, its read-marking does not; Terragrunt
-  v1.1). Mark the module tree explicitly in the config that declares the
-  source.
+- **A relative `terraform.source` in an included config is not marked**
+  (`../modules//x`, `${path_relative_from_include()}/modules//x`): `find`
+  resolves it against the included file while a run resolves it against the
+  unit, so the module's files never reach `reading` (Terragrunt v1.1.0 to
+  v1.1.4, [#6863](https://github.com/gruntwork-io/terragrunt/issues/6863)).
+  Sources built from `get_repo_root()`, `get_parent_terragrunt_dir()`,
+  `path_relative_to_include()` or `dirname(find_in_parent_folders(...))` are
+  marked. Rewrite the source in one of those forms, or mark the module tree
+  explicitly in the config that declares it.
 
 ### 2. Mirror var-files
 
