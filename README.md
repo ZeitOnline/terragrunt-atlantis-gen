@@ -97,7 +97,7 @@ in the job log.
 
 ## Upstream requests
 
-Two Terragrunt changes would let the wrapper drop workarounds. Each entry
+Three Terragrunt changes would let the wrapper drop workarounds. Each entry
 names the interim that applies until the change ships.
 
 - [gruntwork-io/terragrunt#6859](https://github.com/gruntwork-io/terragrunt/issues/6859):
@@ -108,6 +108,13 @@ names the interim that applies until the change ships.
   `**`-less pattern from the runbook is no longer needed for Atlantis
   (Terragrunt's own `--filter-affected` still needs it). Interim:
   `--base-ref`, see above.
+- [gruntwork-io/terragrunt#6858](https://github.com/gruntwork-io/terragrunt/issues/6858):
+  discovery following `module` blocks with a local `source` inside a unit's
+  local `terraform.source` directory, recursively, and recording those
+  directories as read. With it, nested modules arrive in `reading` and
+  `internal/generate/tfmodules.go`, the port of TAC's `parse_tf.go` that
+  scans Terraform code for exactly these calls, goes. Interim: that port,
+  which emits `<dir>/*.tf*` globs for every nested local module.
 - [gruntwork-io/terragrunt#6856](https://github.com/gruntwork-io/terragrunt/issues/6856):
   `find` reporting suppressed parse errors at WARN, plus an opt-in that fails
   on them. With it, the wrapper passes that option and a unit whose config

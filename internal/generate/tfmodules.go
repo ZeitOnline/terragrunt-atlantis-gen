@@ -22,6 +22,8 @@ import (
 // recursively, since modules call modules; emitted as <dir>/*.tf* globs,
 // the shape TAC produced. This is how iam and terraform-infra share
 // modules (modules/gcp/humans calls ../iam-memberships).
+// gruntwork-io/terragrunt#6858 asks discovery to follow these calls itself;
+// once it does, this file is redundant and goes.
 
 var localModuleSourcePrefixes = []string{"./", "../", ".\\", "..\\"}
 
