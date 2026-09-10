@@ -6,6 +6,17 @@
   "lockFileMaintenance": { "enabled": true },
   "schedule": ["before 5am every weekday"],
   "ignorePaths": ["testdata/**"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump the Terragrunt the goldens are verified against; a green PR certifies the wrapper for that version",
+      "managerFilePatterns": ["/^\\.github/workflows/test\\.yaml$/"],
+      "matchStrings": [
+        "#\\s?renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+TERRAGRUNT_VERSION: (?<currentValue>\\S+)"
+      ],
+      "versioningTemplate": "semver-coerced"
+    }
+  ],
   "packageRules": [
     {
       "description": "Group (minor) Go package updates into single PRs",

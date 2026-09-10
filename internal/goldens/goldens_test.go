@@ -31,6 +31,21 @@ func TestMain(m *testing.M) {
 	}
 	repoRoot = filepath.Join(wd, "..", "..")
 
+	// The Terragrunt version decides discovery semantics, so the log of a
+	// golden run has to name the binary it replayed against: TERRAGRUNT_BIN
+	// when set, else the PATH lookup the wrapper itself does.
+	tg := os.Getenv("TERRAGRUNT_BIN")
+	if tg == "" {
+		tg = "terragrunt"
+	}
+	tgPath, err := exec.LookPath(tg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "goldens need terragrunt:", err)
+		os.Exit(1)
+	}
+	tgVersion, _ := exec.Command(tgPath, "--version").Output()
+	fmt.Fprintf(os.Stderr, "replaying goldens with %s (%s)\n", tgPath, strings.TrimSpace(string(tgVersion)))
+
 	tmp, err := os.MkdirTemp("", "gen-bin-*")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

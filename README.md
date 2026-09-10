@@ -167,7 +167,15 @@ go test ./...
 the real CLI against its golden — byte for byte. Terragrunt ≥ 1.1 must be on
 the PATH; where that entry is a version-manager shim that only resolves
 inside configured directories, point `TERRAGRUNT_BIN` at the binary, since
-the history cases run in temporary repositories.
+the history cases run in temporary repositories. The test log names the
+binary and version the goldens replayed against.
+
+CI does not trust the runner's Terragrunt. `test.yaml` downloads the release
+pinned in `TERRAGRUNT_VERSION`, kept at the version the Atlantis image runs,
+verifies that it is the one on the PATH, and runs the tests with `-count=1`:
+the goldens exec Terragrunt from a subprocess, which Go's test cache never
+sees. Renovate bumps the pin when Terragrunt releases, so a green bump PR
+here certifies the wrapper for that version before the Atlantis image moves.
 
 ## Migrating a repo
 

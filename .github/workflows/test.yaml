@@ -9,6 +9,10 @@ jobs:
     runs-on: zon-ubuntu-general-dind
     env:
       GO_VERSION: "1.27"
+      # The Terragrunt the goldens are replayed against: the version the
+      # Atlantis image runs, never whatever the runner image happens to ship.
+      # renovate: datasource=github-releases depName=gruntwork-io/terragrunt
+      TERRAGRUNT_VERSION: v1.1.4
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup golang
@@ -29,9 +33,27 @@ jobs:
         with:
           version: "2026.2.1"
           install-go: false
-      - run: terragrunt --version
+      - name: Install the pinned Terragrunt
+        run: |
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/terragrunt-${TERRAGRUNT_VERSION}"
+          mkdir -p "$dir" && cd "$dir"
+          base="https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}"
+          curl -fsSLO "${base}/terragrunt_linux_amd64"
+          curl -fsSL "${base}/SHA256SUMS" | grep ' terragrunt_linux_amd64$' | sha256sum -c -
+          mv terragrunt_linux_amd64 terragrunt && chmod +x terragrunt
+          echo "$dir" >> "$GITHUB_PATH"
+      # Separate step: GITHUB_PATH only applies to the steps after the one that wrote it.
+      - name: Verify the Terragrunt on PATH
+        run: |
+          got="$(terragrunt --version)"
+          if [ "$got" != "terragrunt version ${TERRAGRUNT_VERSION}" ]; then
+            echo "::error::PATH resolves to '${got}', expected ${TERRAGRUNT_VERSION}"; exit 1
+          fi
       - name: Run tests
-        run: go test -v -cover ./...
+        # -count=1: the goldens exec Terragrunt from a subprocess, which the test
+        # cache never sees, so a cached pass could outlive the binary it was made with.
+        run: go test -count=1 -v -cover ./...
       - name: Forbid Terragrunt imports
         run: |
           if go list -deps ./... | grep gruntwork-io/terragrunt; then
