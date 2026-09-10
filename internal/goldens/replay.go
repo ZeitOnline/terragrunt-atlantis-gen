@@ -41,6 +41,15 @@ func (c Case) Replay(bin, repoRoot string) ([]byte, error) {
 			return nil, err
 		}
 	}
+	// Filters resolve relative to the process directory, the repo root.
+	filterBase := fixturesDir + c.Fixture
+	if c.SymlinkRoot {
+		root = filepath.Join(tmp, "link")
+		if err := os.Symlink(filepath.Join(repoRoot, fixturesDir, c.Fixture), root); err != nil {
+			return nil, err
+		}
+		filterBase = root
+	}
 	args := append([]string{"generate", "--output", out, "--root", root}, c.Flags...)
 	// A version-manager shim on the PATH resolves by working directory and
 	// knows nothing about the temporary repositories; TERRAGRUNT_BIN names
@@ -51,7 +60,7 @@ func (c Case) Replay(bin, repoRoot string) ([]byte, error) {
 	if len(c.Filter) > 0 {
 		globs := make([]string, len(c.Filter))
 		for i, f := range c.Filter {
-			globs[i] = fixturesDir + c.Fixture + "/" + f
+			globs[i] = filterBase + "/" + f
 		}
 		args = append(args, "--filter", strings.Join(globs, ","))
 	}

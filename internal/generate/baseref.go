@@ -73,25 +73,41 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit) error 
 			onlyBase = append(onlyBase, bu.Path)
 			continue
 		}
+		// Includes and reads share one namespace: find lists an included
+		// file under both, and either one puts it in when_modified.
+		watched := map[string]bool{}
+		for _, p := range hu.Include {
+			watched[p] = true
+		}
+		for _, r := range hu.Reading {
+			watched[r] = true
+		}
 		var added []string
 		for _, label := range slices.Sorted(maps.Keys(bu.Include)) {
 			p := bu.Include[label]
-			if slices.Contains(slices.Collect(maps.Values(hu.Include)), p) {
+			if watched[p] {
 				continue
 			}
 			if hu.Include == nil {
 				hu.Include = map[string]string{}
 			}
-			// The label may already be taken by a different path in the head;
-			// only the paths are ever read (sortedIncludePaths).
-			hu.Include["base:"+label] = p
+			// Only the paths are ever read (sortedIncludePaths); the key just
+			// has to be free, and a head label may be anything, "base:x" too.
+			key := "base:" + label
+			for i := 2; hu.Include[key] != ""; i++ {
+				key = fmt.Sprintf("base:%s#%d", label, i)
+			}
+			hu.Include[key] = p
+			watched[p] = true
 			added = append(added, p)
 		}
 		for _, r := range bu.Reading {
-			if !slices.Contains(hu.Reading, r) {
-				hu.Reading = append(hu.Reading, r)
-				added = append(added, r)
+			if watched[r] {
+				continue
 			}
+			hu.Reading = append(hu.Reading, r)
+			watched[r] = true
+			added = append(added, r)
 		}
 		for _, d := range bu.Dependencies {
 			if !slices.Contains(hu.Dependencies, d) {

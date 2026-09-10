@@ -16,7 +16,11 @@ type Case struct {
 	Flags   []string // further generate flags
 	Filter  []string // --filter globs, relative to the fixture directory
 	AbsRoot bool     // pass --root as an absolute path
-	PreSeed string   // written to the output file before the run (preserve-* cases)
+	// SymlinkRoot passes --root, and the --filter globs, through a symlink
+	// to the fixture: the wrapper resolves the root, so matching has to
+	// survive a filter expressed in the unresolved form.
+	SymlinkRoot bool
+	PreSeed     string // written to the output file before the run (preserve-* cases)
 
 	// History replays the case at the head of a git repository built from
 	// the fixture: the fixture as committed on branch `base`, then one commit
@@ -113,4 +117,5 @@ var Cases = []Case{
 	{Name: "infrastructure_live_filter_non_prod", Fixture: "infrastructure_live", Filter: []string{"non-prod"}},
 	{Name: "infrastructure_live_filter_prod_and_non_prod", Fixture: "infrastructure_live", Filter: []string{"non-prod", "prod"}},
 	{Name: "infrastructure_live_filter_glob_mysql", Fixture: "infrastructure_live", Filter: []string{"*/*/*/mysql"}},
+	{Name: "infrastructure_live_filter_prod_symlink_root", Fixture: "infrastructure_live", Filter: []string{"prod"}, SymlinkRoot: true},
 }

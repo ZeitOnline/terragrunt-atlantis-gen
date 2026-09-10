@@ -254,6 +254,11 @@ func (b *builder) filterSet() (map[string]bool, error) {
 			if err != nil {
 				return nil, err
 			}
+			// rootAbs is symlink-resolved (see Run); a filter reaching the
+			// root through a symlink has to compare in the same form.
+			if mAbs, err = filepath.EvalSymlinks(mAbs); err != nil {
+				return nil, err
+			}
 			for path := range b.units {
 				unitAbs := filepath.Join(b.rootAbs, path)
 				if unitAbs == mAbs || strings.HasPrefix(unitAbs, mAbs+string(filepath.Separator)) {
