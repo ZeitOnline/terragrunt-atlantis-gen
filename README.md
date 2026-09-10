@@ -141,6 +141,13 @@ Traps (verified on Terragrunt v1.1.0):
   with `split`/`join`.
 - Marks only work in `locals` blocks — inside `inputs`, inside
   `extra_arguments`, or in files nothing includes, they are never evaluated.
+- **One `locals` block per config.** `find` suppresses parse errors during
+  discovery, so a duplicate `locals` block silently drops every mark in the
+  file — merge marks into the existing block.
+- **`find` does not mark an include-inherited local `terraform.source`**
+  (its `source=**` filter resolves it, its read-marking does not; Terragrunt
+  v1.1). Mark the module tree explicitly in the config that declares the
+  source.
 
 ### 2. Mirror var-files
 
