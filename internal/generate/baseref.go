@@ -2,7 +2,9 @@ package generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"os/exec"
@@ -55,8 +57,19 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit) error 
 		}
 	}()
 
+	// A root below the top level may be new in the pull request, or have
+	// been a file in the base: then every unit is new and there is nothing
+	// to merge.
+	baseRoot := filepath.Join(worktree, filepath.FromSlash(prefix))
+	if info, err := os.Stat(baseRoot); errors.Is(err, fs.ErrNotExist) || (err == nil && !info.IsDir()) {
+		opts.logf("base state %s: %s is not a directory there, every unit is new", commit, filepath.ToSlash(filepath.Clean(prefix)))
+		return nil
+	} else if err != nil {
+		return err
+	}
+
 	opts.logf("discovering the base state at %s (%s)", opts.BaseRef, commit)
-	baseUnits, err := findUnits(opts.TerragruntBin, rootAbs, filepath.Join(worktree, filepath.FromSlash(prefix)), "--dependencies", "--include", "--reading")
+	baseUnits, err := findUnits(opts.TerragruntBin, rootAbs, baseRoot, "--dependencies", "--include", "--reading")
 	if err != nil {
 		return err
 	}
