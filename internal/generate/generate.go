@@ -166,12 +166,13 @@ func Run(opts Options) ([]byte, error) {
 			return nil, err
 		}
 	}
-	if err := parseErrs.report(opts); err != nil {
-		return nil, err
-	}
-
+	// Parse errors count only for the units --filter keeps: a config outside
+	// the scope cannot change what they watch.
 	keep, err := b.filterSet()
 	if err != nil {
+		return nil, err
+	}
+	if err := parseErrs.report(opts, b.units, keep); err != nil {
 		return nil, err
 	}
 

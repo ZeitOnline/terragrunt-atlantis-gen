@@ -55,3 +55,61 @@ func TestSuppressedParseErrors(t *testing.T) {
 		t.Fatalf("run with --fail-on-parse-errors must name the config, got: %v", err)
 	}
 }
+
+// With --filter, a parse error in a dropped unit neither fails nor logs;
+// one in a kept unit still fails.
+func TestSuppressedParseErrorsOutsideFilter(t *testing.T) {
+	bin := os.Getenv("TERRAGRUNT_BIN")
+	if bin == "" {
+		bin = "terragrunt"
+	}
+	root, err := filepath.Abs(filepath.Join("..", "..", "testdata", "fixtures", "parse_error"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log bytes.Buffer
+	opts := Options{Root: root, TerragruntBin: bin, IgnoreParentTerragrunt: true, CascadeDependencies: true, FailOnParseErrors: true, LogWriter: &log}
+
+	opts.FilterPaths = []string{filepath.Join(root, "healthy")}
+	if _, err := Run(opts); err != nil {
+		t.Fatalf("a parse error outside --filter must not fail the run: %v", err)
+	}
+	if strings.Contains(log.String(), "parse error") {
+		t.Errorf("a parse error outside --filter must not be reported:\n%s", log.String())
+	}
+
+	opts.FilterPaths = []string{filepath.Join(root, "reader")}
+	if _, err := Run(opts); err == nil || !strings.Contains(err.Error(), "reader/terragrunt.hcl") {
+		t.Fatalf("the kept unit's parse error must fail the run, got: %v", err)
+	}
+}
+
+func TestParseErrorConcerns(t *testing.T) {
+	units := map[string]*Unit{
+		"a": {Path: "a", Include: map[string]string{"root": "root.hcl"}, Reading: []string{"root.hcl", "settings/a.hcl"}},
+		"b": {Path: "b", Include: map[string]string{"root": "root.hcl"}},
+	}
+	keepA := map[string]bool{"a": true}
+	for _, tc := range []struct {
+		path string
+		want bool
+	}{
+		{"a/terragrunt.hcl", true},
+		{"a", true},
+		{"b/terragrunt.hcl", false},
+		{"b", false},
+		{"root.hcl", true},        // included by a
+		{"settings/a.hcl", true},  // read by a
+		{"nobody/owns.hcl", true}, // no unit owns it: counts for all
+		{"", true},
+	} {
+		if got := (parseError{path: tc.path}).concerns(units, keepA); got != tc.want {
+			t.Errorf("concerns(%q) = %v, want %v", tc.path, got, tc.want)
+		}
+	}
+	// A unit at the root owns every path below it.
+	rootUnit := map[string]*Unit{".": {Path: "."}}
+	if !(parseError{path: "x/y.hcl"}).concerns(rootUnit, map[string]bool{".": true}) {
+		t.Error("a root-level unit must own x/y.hcl")
+	}
+}

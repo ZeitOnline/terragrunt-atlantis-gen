@@ -123,7 +123,10 @@ names the interim that applies until the change ships.
   job log as `terragrunt suppressed a parse error: <file>:<pos>: <diagnostic>`,
   followed by a count, and fails the hook, TAC's behaviour;
   `--fail-on-parse-errors=false` keeps the run going with the log lines
-  only. This rides on the wording of terragrunt's debug
+  only. Only errors that can change a kept unit's output count: those in
+  the unit's directory or in a file it includes or reads. With `--filter`, a
+  broken config elsewhere in the tree is ignored, while one no unit owns
+  counts for every unit. This rides on the wording of terragrunt's debug
   message, which `TestSuppressedParseErrors` pins against the Terragrunt
   version CI runs. `terragrunt hcl validate` is no substitute: it resolves
   `dependency` outputs, so it needs state access on every hook run, and it

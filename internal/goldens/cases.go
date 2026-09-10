@@ -107,6 +107,9 @@ var Cases = []Case{
 	// project but watches only what discovery salvaged. By default the run
 	// fails instead (TestSuppressedParseErrors); the golden needs the opt-out.
 	{Name: "parse_error_fail_on_parse_errors_false", Fixture: "parse_error", Flags: []string{"--fail-on-parse-errors=false"}},
+	// The parse error sits in the unit the filter drops, so it neither fails
+	// nor logs.
+	{Name: "parse_error_filter_healthy", Fixture: "parse_error", Filter: []string{"healthy"}},
 
 	// The fixture is the base state. At the head, the files the pull request
 	// removed are gone from when_modified and the unit whose config no
