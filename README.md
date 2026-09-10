@@ -87,6 +87,36 @@ A ref that does not resolve fails the hook instead of silently producing
 the head-only config. The `deletions` cases in the corpus show the head-only
 output next to the union.
 
+Removing a whole unit is the one deletion no manifest can cover: Atlantis
+plans only directories that exist, so a deleted `terragrunt.hcl` produces no
+destroy. Destroy first, delete second: with the unit still in place, run
+`atlantis plan -d <unit dir> -- -destroy`, apply, and remove the directory
+in a follow-up push. Deleting first leaves the state and the resources in
+place, and the only signal is the `exists only in <base>: no project` line
+in the job log.
+
+## Upstream requests
+
+Two Terragrunt changes would let the wrapper drop workarounds. Each entry
+names the interim that applies until the change ships.
+
+- [gruntwork-io/terragrunt#6859](https://github.com/gruntwork-io/terragrunt/issues/6859):
+  `find --reading` reporting the pattern of `mark_glob_as_read` next to its
+  matches. With it, the wrapper writes the pattern into `when_modified` as
+  TAC did, and Atlantis matches deleted files itself. `--base-ref` then only
+  covers natively read files a pull request deletes, and the second,
+  `**`-less pattern from the runbook is no longer needed for Atlantis
+  (Terragrunt's own `--filter-affected` still needs it). Interim:
+  `--base-ref`, see above.
+- [gruntwork-io/terragrunt#6856](https://github.com/gruntwork-io/terragrunt/issues/6856):
+  `find` reporting suppressed parse errors at WARN, plus an opt-in that fails
+  on them. With it, the wrapper passes that option and a unit whose config
+  no longer parses fails the hook, as it did with TAC. Interim:
+  `terragrunt hcl validate` in front of `generate` in the hook line. It
+  exits 1 on exactly the parse errors `find` swallows, passes on a healthy
+  iam tree in either state, and costs about 3 s for 40 units. Check it
+  against a repo's tree before adding it to that repo's hook line.
+
 ## Goldens
 
 `testdata/goldens/` holds one golden per case in `internal/goldens/cases.go`:
