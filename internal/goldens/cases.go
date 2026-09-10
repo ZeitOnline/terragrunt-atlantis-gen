@@ -103,6 +103,11 @@ var Cases = []Case{
 
 	{Name: "skip", Fixture: "skip"},
 
+	// A unit whose config does not parse (a read of a missing file) keeps its
+	// project but watches only what discovery salvaged; the run logs the
+	// suppressed error, see TestSuppressedParseErrors.
+	{Name: "parse_error", Fixture: "parse_error"},
+
 	// The fixture is the base state. At the head, the files the pull request
 	// removed are gone from when_modified and the unit whose config no
 	// longer parses lost its read silently; --base-ref restores both from

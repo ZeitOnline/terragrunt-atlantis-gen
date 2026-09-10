@@ -23,7 +23,7 @@ import (
 // detached worktree of the base ref, and a unit watches everything it read
 // in either state. Units that exist only in the base get nothing: Atlantis
 // cannot plan a directory that is gone.
-func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit) error {
+func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseErrs *parseErrors) error {
 	topLevel, err := gitOutput(rootAbs, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return fmt.Errorf("--base-ref needs the root inside a git work tree: %w", err)
@@ -69,10 +69,11 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit) error 
 	}
 
 	opts.logf("discovering the base state at %s (%s)", opts.BaseRef, commit)
-	baseUnits, err := findUnits(opts.TerragruntBin, rootAbs, baseRoot, "--dependencies", "--include", "--reading")
+	baseUnits, suppressed, err := findUnits(opts.TerragruntBin, rootAbs, baseRoot, "--dependencies", "--include", "--reading")
 	if err != nil {
 		return err
 	}
+	parseErrs.add(suppressed, baseRoot, "base "+opts.BaseRef)
 
 	slices.SortFunc(baseUnits, func(a, b Unit) int { return strings.Compare(a.Path, b.Path) })
 	unitsGained, pathsGained := 0, 0
