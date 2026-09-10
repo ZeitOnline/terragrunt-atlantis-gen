@@ -6,6 +6,17 @@
   "lockFileMaintenance": { "enabled": true },
   "schedule": ["before 5am every weekday"],
   "ignorePaths": ["testdata/**"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump the versions pinned under a `# renovate:` comment: staticcheck in the Taskfile, and the Terragrunt CI replays the goldens against — a green PR certifies the wrapper for that version",
+      "managerFilePatterns": ["/^Taskfile\\.yaml$/", "/^\\.github/workflows/test\\.yaml$/"],
+      "matchStrings": [
+        "#\\s?renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+\\w+: \"?(?<currentValue>[^\"\\s]+)\"?"
+      ],
+      "versioningTemplate": "semver-coerced"
+    }
+  ],
   "packageRules": [
     {
       "description": "Group (minor) Go package updates into single PRs",

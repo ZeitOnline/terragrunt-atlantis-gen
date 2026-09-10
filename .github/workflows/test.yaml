@@ -1,3 +1,5 @@
+# The checks live in the Taskfile, so CI and a local `task lint` / `task test`
+# run exactly the same thing — see Taskfile.yaml.
 name: Build and test code
 on:
   pull_request:
@@ -9,6 +11,10 @@ jobs:
     runs-on: zon-ubuntu-general-dind
     env:
       GO_VERSION: "1.27"
+      # The Terragrunt the goldens are replayed against: the version the
+      # Atlantis image runs, never whatever the runner image happens to ship.
+      # renovate: datasource=github-releases depName=gruntwork-io/terragrunt
+      TERRAGRUNT_VERSION: v1.1.4
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Setup golang
@@ -17,23 +23,28 @@ jobs:
           go-version: "^${{ env.GO_VERSION }}"
           cache: true
           cache-dependency-path: go.sum
-      - name: Check formatting
-        run: |
-          unformatted="$(gofmt -l .)"
-          if [ -n "$unformatted" ]; then
-            echo "::error::not gofmt'ed:"; echo "$unformatted"; exit 1
-          fi
-      - run: go vet ./...
-      - name: Run staticcheck
-        uses: dominikh/staticcheck-action@9716614d4101e79b4340dd97b10e54d68234e431 # v1.4.1
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: "2026.2.1"
-          install-go: false
-      - run: terragrunt --version
-      - name: Run tests
-        run: go test -v -cover ./...
-      - name: Forbid Terragrunt imports
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lint
+        run: task lint
+      - name: Install the pinned Terragrunt
         run: |
-          if go list -deps ./... | grep gruntwork-io/terragrunt; then
-            echo "::error::the wrapper must not import Terragrunt"; exit 1
+          set -euo pipefail
+          dir="${RUNNER_TEMP}/terragrunt-${TERRAGRUNT_VERSION}"
+          mkdir -p "$dir" && cd "$dir"
+          base="https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}"
+          curl -fsSLO "${base}/terragrunt_linux_amd64"
+          curl -fsSL "${base}/SHA256SUMS" | grep ' terragrunt_linux_amd64$' | sha256sum -c -
+          mv terragrunt_linux_amd64 terragrunt && chmod +x terragrunt
+          echo "$dir" >> "$GITHUB_PATH"
+      # Separate step: GITHUB_PATH only applies to the steps after the one that wrote it.
+      - name: Verify the Terragrunt on PATH
+        run: |
+          got="$(terragrunt --version)"
+          if [ "$got" != "terragrunt version ${TERRAGRUNT_VERSION}" ]; then
+            echo "::error::PATH resolves to '${got}', expected ${TERRAGRUNT_VERSION}"; exit 1
           fi
+      - name: Test
+        run: task test -- -v
