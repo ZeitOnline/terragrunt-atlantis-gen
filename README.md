@@ -130,6 +130,24 @@ names the interim that applies until the change ships.
   fails on terraform-infra's cluster-infra configs with an output-parsing
   error.
 
+## Development
+
+Go, [Task](https://taskfile.dev/) and Terragrunt ≥ 1.1 on the PATH; the git
+hooks need [lefthook](https://lefthook.dev/), installed once with `task setup`.
+
+```sh
+task --list             # every task
+task build              # ./terragrunt-atlantis-gen, --version reports git describe
+task lint               # gofmt, go vet, staticcheck, no Terragrunt import
+task test               # go test, goldens included; task test -- -run TestGoldens
+task release:snapshot   # every release artifact into dist/, nothing published
+```
+
+CI runs the same tasks: `test.yaml` runs `task lint` and `task test` on every
+pull request and push to `main`, `release.yaml` runs `task release` once
+release-please has cut the tag. Tool versions the tasks pin (staticcheck) sit
+in `Taskfile.yaml` under a `# renovate:` comment, so Renovate bumps them.
+
 ## Goldens
 
 `testdata/goldens/` holds one golden per case in `internal/goldens/cases.go`:
@@ -154,28 +172,32 @@ Regenerating is a deliberate act, never part of a normal test run; the diff
 it produces is what gets reviewed:
 
 ```sh
-go test ./internal/goldens -update
+task goldens:update
 ```
 
 ## Tests
 
 ```sh
-go test ./...
+task test
 ```
 
 `internal/goldens` builds the wrapper binary and replays every case through
 the real CLI against its golden — byte for byte. Terragrunt ≥ 1.1 must be on
-the PATH; where that entry is a version-manager shim that only resolves
-inside configured directories, point `TERRAGRUNT_BIN` at the binary, since
-the history cases run in temporary repositories. The test log names the
-binary and version the goldens replayed against.
+the PATH. The history cases run in temporary repositories, where a
+version-manager shim that only resolves inside configured directories does
+not work: for mise, `task test` points `TERRAGRUNT_BIN` at the binary behind
+the shim itself; for any other manager, set it by hand. The test log names
+the binary and version the goldens replayed against.
+
+`task test` runs with `-count=1`: the goldens exec Terragrunt from a
+subprocess, which Go's test cache never sees, so a cached pass could outlive
+the binary it was made with.
 
 CI does not trust the runner's Terragrunt. `test.yaml` downloads the release
 pinned in `TERRAGRUNT_VERSION`, kept at the version the Atlantis image runs,
-verifies that it is the one on the PATH, and runs the tests with `-count=1`:
-the goldens exec Terragrunt from a subprocess, which Go's test cache never
-sees. Renovate bumps the pin when Terragrunt releases, so a green bump PR
-here certifies the wrapper for that version before the Atlantis image moves.
+verifies that it is the one on the PATH, and only then runs `task test`.
+Renovate bumps the pin when Terragrunt releases, so a green bump PR here
+certifies the wrapper for that version before the Atlantis image moves.
 
 ## Migrating a repo
 

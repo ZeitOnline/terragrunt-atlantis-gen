@@ -52,10 +52,20 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
-      - name: Run GoReleaser
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # install-only: the release command itself is `task release`, shared with
+      # the Taskfile's local snapshot build.
+      - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@ec59f474b9834571250b370d4735c50f8e2d1e29 # v7
         with:
           version: '~> v2'
-          args: release --clean
+          install-only: true
+
+      - name: Release
+        run: task release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

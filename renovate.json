@@ -9,10 +9,10 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Bump the Terragrunt the goldens are verified against; a green PR certifies the wrapper for that version",
-      "managerFilePatterns": ["/^\\.github/workflows/test\\.yaml$/"],
+      "description": "Bump the versions pinned under a `# renovate:` comment: staticcheck in the Taskfile, and the Terragrunt CI replays the goldens against — a green PR certifies the wrapper for that version",
+      "managerFilePatterns": ["/^Taskfile\\.yaml$/", "/^\\.github/workflows/test\\.yaml$/"],
       "matchStrings": [
-        "#\\s?renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+TERRAGRUNT_VERSION: (?<currentValue>\\S+)"
+        "#\\s?renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+\\w+: \"?(?<currentValue>[^\"\\s]+)\"?"
       ],
       "versioningTemplate": "semver-coerced"
     }

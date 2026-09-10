@@ -1,3 +1,5 @@
+# The checks live in the Taskfile, so CI and a local `task lint` / `task test`
+# run exactly the same thing — see Taskfile.yaml.
 name: Build and test code
 on:
   pull_request:
@@ -21,18 +23,12 @@ jobs:
           go-version: "^${{ env.GO_VERSION }}"
           cache: true
           cache-dependency-path: go.sum
-      - name: Check formatting
-        run: |
-          unformatted="$(gofmt -l .)"
-          if [ -n "$unformatted" ]; then
-            echo "::error::not gofmt'ed:"; echo "$unformatted"; exit 1
-          fi
-      - run: go vet ./...
-      - name: Run staticcheck
-        uses: dominikh/staticcheck-action@9716614d4101e79b4340dd97b10e54d68234e431 # v1.4.1
+      - name: Install Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
         with:
-          version: "2026.2.1"
-          install-go: false
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lint
+        run: task lint
       - name: Install the pinned Terragrunt
         run: |
           set -euo pipefail
@@ -50,12 +46,5 @@ jobs:
           if [ "$got" != "terragrunt version ${TERRAGRUNT_VERSION}" ]; then
             echo "::error::PATH resolves to '${got}', expected ${TERRAGRUNT_VERSION}"; exit 1
           fi
-      - name: Run tests
-        # -count=1: the goldens exec Terragrunt from a subprocess, which the test
-        # cache never sees, so a cached pass could outlive the binary it was made with.
-        run: go test -count=1 -v -cover ./...
-      - name: Forbid Terragrunt imports
-        run: |
-          if go list -deps ./... | grep gruntwork-io/terragrunt; then
-            echo "::error::the wrapper must not import Terragrunt"; exit 1
-          fi
+      - name: Test
+        run: task test -- -v

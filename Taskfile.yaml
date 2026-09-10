@@ -1,0 +1,105 @@
+# Taskfile for terragrunt-atlantis-gen. Overview: task --list
+#
+# CI runs these same tasks (.github/workflows), so what passes here passes there.
+version: "3"
+
+# Several tasks are multi-line shell blocks; without silent, every block would be
+# echoed in full before it runs.
+silent: true
+
+vars:
+  BINARY: terragrunt-atlantis-gen
+  # renovate: datasource=github-releases depName=dominikh/go-tools
+  STATICCHECK_VERSION: "2026.2.1"
+  # What a local build answers to --version; GoReleaser injects the tag itself.
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo dev
+
+env:
+  # The goldens exec terragrunt inside temporary repositories, where a mise shim
+  # does not resolve. Hand them the binary behind the shim unless already told.
+  TERRAGRUNT_BIN:
+    sh: |
+      if [ -n "${TERRAGRUNT_BIN:-}" ]; then echo "$TERRAGRUNT_BIN"; exit 0; fi
+      case "$(command -v terragrunt 2>/dev/null)" in
+        */mise/shims/*) mise which terragrunt ;;
+      esac
+
+tasks:
+  default:
+    desc: Show the available tasks
+    cmds:
+      - task --list
+
+  setup:
+    desc: Install the git hooks (lefthook)
+    preconditions:
+      - sh: command -v lefthook
+        msg: "lefthook is missing — please install it: https://lefthook.dev/"
+    cmds:
+      - lefthook install
+
+  build:
+    desc: Build ./terragrunt-atlantis-gen, reporting the git describe version
+    cmds:
+      - go build -ldflags "-X main.appVersion={{.VERSION}}" -o {{.BINARY}} .
+
+  fmt:
+    desc: Format the Go sources in place
+    cmds:
+      - gofmt -l -w .
+
+  lint:
+    desc: Check gofmt, go vet, staticcheck, and that nothing imports Terragrunt
+    cmds:
+      - |
+        unformatted="$(gofmt -l .)"
+        if [ -n "$unformatted" ]; then
+          echo "not gofmt'ed (run: task fmt):" >&2
+          echo "$unformatted" >&2
+          exit 1
+        fi
+      - go vet ./...
+      # go run resolves the pinned release into the module cache; nothing lands on
+      # PATH or in go.mod.
+      - go run honnef.co/go/tools/cmd/staticcheck@{{.STATICCHECK_VERSION}} ./...
+      # The wrapper drives the Terragrunt CLI; linking the module would tie the
+      # binary to one Terragrunt version.
+      - |
+        if go list -deps ./... | grep gruntwork-io/terragrunt; then
+          echo "the wrapper must not import Terragrunt" >&2
+          exit 1
+        fi
+
+  test:
+    desc: Run all tests, goldens included (go test flags after --)
+    cmds:
+      # -count=1: the goldens exec Terragrunt from a subprocess, which the test
+      # cache never sees, so a cached pass could outlive the binary it was made with.
+      - go test -count=1 -cover ./... {{.CLI_ARGS}}
+
+  goldens:update:
+    desc: Rewrite testdata/goldens from the current output; the diff is what gets reviewed
+    cmds:
+      - go test -count=1 ./internal/goldens -update
+
+  release:snapshot:
+    desc: Build every release artifact into dist/ without publishing
+    preconditions:
+      - sh: command -v goreleaser
+        msg: "goreleaser is missing — please install it: https://goreleaser.com/install/"
+    cmds:
+      - goreleaser release --snapshot --clean
+
+  release:
+    desc: Publish the release for the checked-out tag (CI; needs GITHUB_TOKEN)
+    preconditions:
+      - sh: command -v goreleaser
+        msg: "goreleaser is missing — please install it: https://goreleaser.com/install/"
+    cmds:
+      - goreleaser release --clean
+
+  clean:
+    desc: Remove the local binary and dist/
+    cmds:
+      - rm -rf {{.BINARY}} dist
