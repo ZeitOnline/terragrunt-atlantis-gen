@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.4.0...v0.5.0) (2026-09-11)
+
+
+### Features
+
+* structure the job log into sections ([6a20b60](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/6a20b60ac386922c0f28e222218970fab00d1256))
+
+
+### Bug Fixes
+
+* do not report ignored dependency blocks as watched paths ([64c29d5](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/64c29d50ad4752c0a4568c02bf6b29eba1b03180))
+* keep the log's project tree and its total in agreement ([c561a04](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/c561a04208eccfdad9d4dd9245cc3b2e35b3b058))
+* probe the terragrunt version where discovery runs ([e23d1c7](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/e23d1c760bc05dc10d0bd7daa254b55ca1cabab7))
+* report base-state gains only for units that get a project ([246509d](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/246509d64988f712cd1eeb6533fa7d38d335fdf0))
+
 ## [0.4.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.3.0...v0.4.0) (2026-09-10)
 
 
