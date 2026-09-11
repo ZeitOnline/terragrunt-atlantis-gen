@@ -159,27 +159,27 @@ func (l joblog) projects(projects []AtlantisProject) {
 			}
 			n = child
 		}
-		n.watched = len(projects[i].Autoplan.WhenModified)
+		n.watched = append(n.watched, len(projects[i].Autoplan.WhenModified))
 	}
 	var rows []row
 	root.appendRows(&rows, 1)
 	l.table(rows)
 }
 
-// pathNode is one segment of the project tree; watched is -1 where no
-// project sits on the node itself.
+// pathNode is one segment of the project tree. watched holds one entry per
+// project on the node, not one per node: --preserve-projects carries over
+// whatever the old output file held, and Atlantis allows several projects on
+// one dir, told apart by name or workspace. Counting them here is what keeps
+// the tree and the section's own total in agreement.
 type pathNode struct {
 	children map[string]*pathNode
-	watched  int
+	watched  []int
 }
 
-func newPathNode() *pathNode { return &pathNode{children: map[string]*pathNode{}, watched: -1} }
+func newPathNode() *pathNode { return &pathNode{children: map[string]*pathNode{}} }
 
 func (n *pathNode) leaves() int {
-	count := 0
-	if n.watched >= 0 {
-		count = 1
-	}
+	count := len(n.watched)
 	for _, c := range n.children {
 		count += c.leaves()
 	}
@@ -194,18 +194,20 @@ func (n *pathNode) appendRows(rows *[]row, depth int) {
 	sort.Strings(names)
 	for _, name := range names {
 		child, label := n.children[name], name
-		for child.watched < 0 && len(child.children) == 1 {
+		for len(child.watched) == 0 && len(child.children) == 1 {
 			for seg, only := range child.children {
 				label, child = label+"/"+seg, only
 			}
 		}
 		if len(child.children) == 0 {
-			*rows = append(*rows, row{depth, label, plural(child.watched, "path")})
+			for _, watched := range child.watched {
+				*rows = append(*rows, row{depth, label, plural(watched, "path")})
+			}
 			continue
 		}
 		*rows = append(*rows, row{depth, label + "/", fmt.Sprintf("(%s)", plural(child.leaves(), "project"))})
-		if child.watched >= 0 {
-			*rows = append(*rows, row{depth + 1, ".", plural(child.watched, "path")})
+		for _, watched := range child.watched {
+			*rows = append(*rows, row{depth + 1, ".", plural(watched, "path")})
 		}
 		child.appendRows(rows, depth+1)
 	}

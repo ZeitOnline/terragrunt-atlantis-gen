@@ -285,9 +285,11 @@ func Run(opts Options) ([]byte, error) {
 		log.para(1, "no project for %s (--ignore-parent-terragrunt)", plural(parents, "parent config"))
 	}
 	log.projects(config.Projects)
-	log.section("Done")
-	log.line(1, "%s from %s in %s -> %s",
-		plural(len(config.Projects), "project"), plural(len(b.units), "unit"), since(start), output)
+	// The caller still has to persist the bytes, so this reports what was
+	// generated and never that the target named in Configuration was written.
+	log.section("Summary")
+	log.line(1, "%s from %s in %s",
+		plural(len(config.Projects), "project"), plural(len(b.units), "unit"), since(start))
 
 	if strings.Contains(runtime.GOOS, "windows") {
 		yamlBytes = bytes.ReplaceAll(yamlBytes, []byte("\n"), []byte("\r\n"))
