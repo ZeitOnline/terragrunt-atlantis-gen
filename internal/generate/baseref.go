@@ -125,9 +125,15 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 			watched[r] = true
 			added = append(added, r)
 		}
+		// The union stays faithful to both states, but a dependency block the
+		// run ignores reaches no when_modified entry (see builder.dependencies),
+		// and this section counts what a unit watches, not what it declares.
 		for _, d := range bu.Dependencies {
-			if !slices.Contains(hu.Dependencies, d) {
-				hu.Dependencies = append(hu.Dependencies, d)
+			if slices.Contains(hu.Dependencies, d) {
+				continue
+			}
+			hu.Dependencies = append(hu.Dependencies, d)
+			if !opts.IgnoreDependencyBlocks {
 				added = append(added, d+"/")
 			}
 		}
