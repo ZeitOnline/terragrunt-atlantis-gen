@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"cmp"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -91,21 +92,48 @@ func (u *Unit) touches(p string) bool {
 // unless the run was told to carry on, turns them into its error. keep nil
 // means every unit is kept.
 func (p *parseErrors) report(opts Options, units map[string]*Unit, keep map[string]bool) error {
-	var lines []string
+	var reported []parseError
 	for _, e := range p.items {
 		if keep == nil || e.concerns(units, keep) {
-			lines = append(lines, e.text)
+			reported = append(reported, e)
 		}
 	}
-	if len(lines) == 0 {
+	if len(reported) == 0 {
 		return nil
 	}
-	for _, l := range lines {
-		opts.logf("terragrunt suppressed a parse error: %s", l)
+	// find reports them in discovery order, which differs between runs of the
+	// same tree; by path the same repo always reads the same way.
+	slices.SortFunc(reported, func(a, b parseError) int {
+		return cmp.Or(strings.Compare(a.path, b.path), strings.Compare(a.text, b.text))
+	})
+	log := joblog{opts.LogWriter}
+	log.section("Parse errors  %d suppressed by terragrunt find", len(reported))
+	for _, e := range reported {
+		log.wrap(1, "%s", e.text)
 	}
-	opts.logf("%d parse error(s) suppressed by terragrunt find; the affected units watch fewer paths than their configs declare", len(lines))
-	if opts.FailOnParseErrors {
-		return fmt.Errorf("%d config(s) do not parse (--fail-on-parse-errors):\n  %s", len(lines), strings.Join(lines, "\n  "))
+	log.write("")
+	if !opts.FailOnParseErrors {
+		log.para(1, "These configs do not parse, so the units that read them watch fewer "+
+			"paths than they declare and a change to those paths triggers no plan.")
+		return nil
 	}
-	return nil
+	log.para(1, "These configs do not parse, so the units that read them watch fewer "+
+		"paths than they declare. Pass --fail-on-parse-errors=false to generate anyway.")
+	// The diagnostics are already in the section above; the error names the
+	// configs to fix, and falls back to the whole message where one names none.
+	// Several diagnostics in one file are one config to fix.
+	var blamed []string
+	seen := map[string]bool{}
+	for _, e := range reported {
+		name := e.path
+		if name == "" {
+			name = e.text
+		}
+		if !seen[name] {
+			seen[name] = true
+			blamed = append(blamed, name)
+		}
+	}
+	return fmt.Errorf("%s did not parse (--fail-on-parse-errors):\n  %s",
+		plural(len(blamed), "config"), strings.Join(blamed, "\n  "))
 }

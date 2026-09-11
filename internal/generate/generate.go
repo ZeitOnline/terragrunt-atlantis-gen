@@ -6,6 +6,7 @@ package generate
 
 import (
 	"bytes"
+	"cmp"
 	"fmt"
 	"io"
 	"os"
@@ -51,15 +52,12 @@ type Options struct {
 	// failed run, TAC's behaviour and the CLI default; false only logs them.
 	FailOnParseErrors bool
 
+	// Version names the build in the job log's first line.
+	Version string
+
 	// LogWriter receives human-readable progress (the Atlantis job log);
 	// nil silences it.
 	LogWriter io.Writer
-}
-
-func (o Options) logf(format string, args ...any) {
-	if o.LogWriter != nil {
-		fmt.Fprintf(o.LogWriter, format+"\n", args...)
-	}
 }
 
 // The output structs are TAC's, marshalled with the same library (ghodss)
@@ -130,8 +128,32 @@ func Run(opts Options) ([]byte, error) {
 		return nil, err
 	}
 	start := time.Now()
-	opts.logf("discovering units via %s (%s)", opts.TerragruntBin, terragruntVersion(opts.TerragruntBin))
+	log := joblog{opts.LogWriter}
+	log.banner("terragrunt-atlantis-gen %s", cmp.Or(opts.Version, "dev"))
 
+	output := opts.OutputPath
+	if output == "" {
+		output = "(stdout)"
+	}
+	fields := [][2]string{
+		{"root", rootAbs},
+		// Version first: a long binary path must not push it onto a
+		// continuation line, it is what decides discovery semantics.
+		{"terragrunt", fmt.Sprintf("%s at %s", terragruntVersion(opts.TerragruntBin), opts.TerragruntBin)},
+		{"output", output},
+	}
+	if len(opts.FilterPaths) > 0 {
+		fields = append(fields, [2]string{"filter", strings.Join(opts.FilterPaths, ", ")})
+	}
+	if opts.BaseRef != "" {
+		fields = append(fields, [2]string{"base ref", opts.BaseRef})
+	}
+	fields = append(fields, [2]string{"settings", opts.settings()})
+	log.section("Configuration")
+	log.fields(fields)
+
+	log.section("Discovery")
+	discoveryStart := time.Now()
 	var parseErrs parseErrors
 	units, suppressed, err := findUnits(opts.TerragruntBin, rootAbs, rootAbs, "--dependencies", "--include", "--reading", "--exclude")
 	if err != nil {
@@ -161,16 +183,44 @@ func Run(opts Options) ([]byte, error) {
 	for _, u := range sourceUnits {
 		b.hasSource[u.Path] = true
 	}
-	if opts.BaseRef != "" {
-		if err := mergeBaseState(opts, rootAbs, b.units, &parseErrs); err != nil {
-			return nil, err
-		}
-	}
+
 	// Parse errors count only for the units --filter keeps: a config outside
 	// the scope cannot change what they watch.
 	keep, err := b.filterSet()
 	if err != nil {
 		return nil, err
+	}
+	paths := make([]string, 0, len(b.units))
+	for p := range b.units {
+		paths = append(paths, p)
+	}
+	sort.Strings(paths)
+	var kept, excluded []string
+	for _, path := range paths {
+		if keep != nil && !keep[path] {
+			continue
+		}
+		if b.units[path].Exclude.ExcludesPlan() {
+			excluded = append(excluded, path)
+			continue
+		}
+		kept = append(kept, path)
+	}
+	log.line(1, "%s found in %s", plural(len(b.units), "unit"), since(discoveryStart))
+	if keep != nil {
+		log.line(1, "%s in scope of --filter", plural(len(kept)+len(excluded), "unit"))
+	}
+	if len(excluded) > 0 {
+		log.line(1, "%s excluded by an exclude block covering plan:", plural(len(excluded), "unit"))
+		for _, path := range excluded {
+			log.line(2, "%s", path)
+		}
+	}
+
+	if opts.BaseRef != "" {
+		if err := mergeBaseState(opts, rootAbs, b.units, &parseErrs); err != nil {
+			return nil, err
+		}
 	}
 	if err := parseErrs.report(opts, b.units, keep); err != nil {
 		return nil, err
@@ -193,27 +243,16 @@ func Run(opts Options) ([]byte, error) {
 		config.Projects = oldConfig.Projects
 	}
 
-	paths := make([]string, 0, len(b.units))
-	for p := range b.units {
-		paths = append(paths, p)
-	}
-	sort.Strings(paths)
-
-	for _, path := range paths {
-		if keep != nil && !keep[path] {
-			continue
-		}
-		if b.units[path].Exclude.ExcludesPlan() {
-			opts.logf("excluded %s (exclude block covers plan)", path)
-		}
+	parents := 0
+	for _, path := range kept {
 		project, err := b.createProject(path)
 		if err != nil {
 			return nil, err
 		}
 		if project == nil {
+			parents++
 			continue
 		}
-		opts.logf("project %s (%d watched paths)", project.Dir, len(project.Autoplan.WhenModified))
 		if opts.PreserveProjects {
 			updated := false
 			for i := range config.Projects {
@@ -240,7 +279,16 @@ func Run(opts Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	opts.logf("%d units -> %d projects in %s", len(b.units), len(config.Projects), time.Since(start).Round(time.Millisecond))
+
+	log.section("Projects  %d", len(config.Projects))
+	if parents > 0 {
+		log.para(1, "no project for %s (--ignore-parent-terragrunt)", plural(parents, "parent config"))
+	}
+	log.projects(config.Projects)
+	log.section("Done")
+	log.line(1, "%s from %s in %s -> %s",
+		plural(len(config.Projects), "project"), plural(len(b.units), "unit"), since(start), output)
+
 	if strings.Contains(runtime.GOOS, "windows") {
 		yamlBytes = bytes.ReplaceAll(yamlBytes, []byte("\n"), []byte("\r\n"))
 	}
@@ -572,7 +620,7 @@ func sortedIncludePaths(byLabel map[string]string) []string {
 func terragruntVersion(bin string) string {
 	out, err := exec.Command(bin, "--version").Output()
 	if err != nil {
-		return "version unknown"
+		return "unknown version"
 	}
-	return strings.TrimSpace(string(out))
+	return strings.TrimPrefix(strings.TrimSpace(string(out)), "terragrunt version ")
 }

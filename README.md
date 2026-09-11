@@ -52,6 +52,64 @@ The corpus has no cases for dropped features. The `skip` fixture covers the
 `exclude` semantics above: inherited from a parent, overridden by a child,
 declared in the unit itself, and an `actions` list that leaves `plan` alone.
 
+## Job log
+
+Every run writes a structured log to stderr, which is what the Atlantis job
+view shows. The shape is the same for a two-unit repo and a two-hundred-unit
+one:
+
+```text
+============================================================================================
+  terragrunt-atlantis-gen v1.2.3
+============================================================================================
+
+==== Configuration =========================================================================
+    root        /home/atlantis/repos/ZeitOnline/terraform-infra/1234/default
+    terragrunt  v1.1.4 at /usr/local/bin/terragrunt
+    output      atlantis.yaml
+    base ref    origin/main
+    settings    autoplan, parallel, cascade-dependencies, ignore-parent-terragrunt,
+                preserve-workflows, workflow=terragrunt
+
+==== Discovery =============================================================================
+    36 units found in 4.2s
+    1 unit excluded by an exclude block covering plan:
+      prod/us-east-1/live/legacy-db
+
+==== Base state  origin/main @ 86ea98c =====================================================
+    2 paths across 2 units watched only because of the base:
+      prod/europe-west3/live/mysql  + settings/prod.hcl
+      prod/us-east-1/live/mysql     + settings/prod.hcl
+    1 unit only in the base, so no project:
+      prod/us-east-1/live/old-cache
+    took 3.1s
+
+==== Parse errors  1 suppressed by terragrunt find =========================================
+    prod/us-east-1/live/mysql/terragrunt.hcl:15,14-37: Error in function call; Call to
+      function "read_terragrunt_config" failed: ... Path: "settings/prod.hcl".
+
+    These configs do not parse, so the units that read them watch fewer paths than they
+    declare. Pass --fail-on-parse-errors=false to generate anyway.
+
+==== Projects  4 ===========================================================================
+    prod/us-east-1/        (4 projects)
+      live/                (2 projects)
+        mysql              9 paths
+        webserver-cluster  8 paths
+      qa/                  (2 projects)
+        mysql              8 paths
+        webserver-cluster  8 paths
+
+==== Done ==================================================================================
+    4 projects from 36 units in 9.4s -> atlantis.yaml
+```
+
+`Base state` appears only with `--base-ref`, `Parse errors` only when
+discovery suppressed one. The project list is a path tree: a chain of
+directories holding nothing else collapses into one heading, so a repo with
+its units at the top level renders as a flat list and a deeply nested one as
+a tree.
+
 ## Deleted and renamed files
 
 Atlantis decides what to plan by matching the pull request's modified files
@@ -66,10 +124,10 @@ wrote the literal glob into the output.
 
 `--base-ref <ref>` closes it. Discovery runs a second time in a detached
 worktree of that ref, and every unit's includes, reads and dependency blocks
-are the union of both states. The job log names the base commit, what each
-unit watches only because of the base, and the units that exist only there.
-Those get no project: Atlantis cannot plan a directory that is gone, the
-same limit TAC had.
+are the union of both states. The job log's `Base state` section names the
+base commit, what each unit watches only because of the base, and the units
+that exist only there. Those get no project: Atlantis cannot plan a
+directory that is gone, the same limit TAC had.
 
 The ref has to resolve in the hook's checkout, which depends on the
 server's checkout strategy:
@@ -92,8 +150,8 @@ plans only directories that exist, so a deleted `terragrunt.hcl` produces no
 destroy. Destroy first, delete second: with the unit still in place, run
 `atlantis plan -d <unit dir> -- -destroy`, apply, and remove the directory
 in a follow-up push. Deleting first leaves the state and the resources in
-place, and the only signal is the `exists only in <base>: no project` line
-in the job log.
+place, and the only signal is the `only in the base, so no project` entry in
+the job log's `Base state` section.
 
 ## Upstream requests
 
@@ -119,11 +177,10 @@ names the interim that applies until the change ships.
   `find` reporting suppressed parse errors at WARN, plus an opt-in that fails
   on them. With it, the wrapper passes that option instead of reading the
   debug log. Interim: every discovery runs with `--log-level debug
-  --log-format json`, and the wrapper reports each suppressed error in the
-  job log as `terragrunt suppressed a parse error: <file>:<pos>: <diagnostic>`,
-  followed by a count, and fails the hook, TAC's behaviour;
-  `--fail-on-parse-errors=false` keeps the run going with the log lines
-  only. Only errors that can change a kept unit's output count: those in
+  --log-format json`, and the wrapper reports every suppressed error in the
+  job log's `Parse errors` section, then fails the hook naming the configs
+  to fix, TAC's behaviour; `--fail-on-parse-errors=false` keeps the run
+  going with the section only. Only errors that can change a kept unit's output count: those in
   the unit's directory or in a file it includes or reads. With `--filter`, a
   broken config elsewhere in the tree is ignored, while one no unit owns
   counts for every unit. This rides on the wording of terragrunt's debug
