@@ -110,9 +110,12 @@ a tree.
 The counts reconcile, which is what makes the log answer "why is this unit
 not planned": the four discovered units above end up as two projects because
 one carries an `exclude` block covering plan and one references no terraform
-module. `Summary` names what was generated rather than that the file was
-written — the hook writes it after generation, and the target is already
-under `Configuration`.
+module. `Base state` counts only units the run may build a project for — one
+outside `--filter` or carrying an `exclude` block still has its base state
+merged, but a path it gained cannot reach the output, so reporting it would
+overstate what the config watches. `Summary` names what was generated rather
+than that the file was written — the hook writes it after generation, and the
+target is already under `Configuration`.
 
 ## Deleted and renamed files
 

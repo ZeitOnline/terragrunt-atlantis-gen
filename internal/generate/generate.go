@@ -218,7 +218,11 @@ func Run(opts Options) ([]byte, error) {
 	}
 
 	if opts.BaseRef != "" {
-		if err := mergeBaseState(opts, rootAbs, b.units, &parseErrs); err != nil {
+		eligible := make(map[string]bool, len(kept))
+		for _, path := range kept {
+			eligible[path] = true
+		}
+		if err := mergeBaseState(opts, rootAbs, b.units, eligible, &parseErrs); err != nil {
 			return nil, err
 		}
 	}
