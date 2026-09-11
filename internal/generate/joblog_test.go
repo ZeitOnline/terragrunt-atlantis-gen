@@ -53,6 +53,25 @@ func TestJoblogProjects(t *testing.T) {
       roles  4 paths`,
 		},
 		{
+			// --preserve-projects carries over the old output file, and Atlantis
+			// allows several projects on one dir; the header counts them all, so
+			// the tree has to show them all.
+			name:     "projects sharing a dir each keep a row",
+			projects: []AtlantisProject{project("module", 1), project("module", 2)},
+			want: `
+    module  1 path
+    module  2 paths`,
+		},
+		{
+			name:     "shared dirs under a heading stay countable",
+			projects: []AtlantisProject{project("iam", 3), project("iam", 4), project("iam/roles", 5)},
+			want: `
+    iam/     (3 projects)
+      .      3 paths
+      .      4 paths
+      roles  5 paths`,
+		},
+		{
 			name:     "the repo root as a unit",
 			projects: []AtlantisProject{project(".", 3)},
 			want: `

@@ -72,36 +72,33 @@ one:
                 preserve-workflows, workflow=terragrunt
 
 ==== Discovery =============================================================================
-    36 units found in 4.2s
+    4 units found in 94ms
     1 unit excluded by an exclude block covering plan:
-      prod/us-east-1/live/legacy-db
+      cache
 
-==== Base state  origin/main @ 86ea98c =====================================================
-    2 paths across 2 units watched only because of the base:
-      prod/europe-west3/live/mysql  + settings/prod.hcl
-      prod/us-east-1/live/mysql     + settings/prod.hcl
+==== Base state  origin/main @ e7cf44e =====================================================
+    1 path across 1 unit watched only because of the base:
+      db  + settings/prod.hcl
     1 unit only in the base, so no project:
-      prod/us-east-1/live/old-cache
-    took 3.1s
+      legacy
+    took 69ms
 
 ==== Parse errors  1 suppressed by terragrunt find =========================================
-    prod/us-east-1/live/mysql/terragrunt.hcl:15,14-37: Error in function call; Call to
-      function "read_terragrunt_config" failed: ... Path: "settings/prod.hcl".
+    db/terragrunt.hcl:6,14-37: Error in function call; Call to function
+      "read_terragrunt_config" failed: You attempted to run terragrunt in a folder that does
+      not contain a terragrunt.hcl file. Please add a terragrunt.hcl file and try again.
+      Path: "settings/prod.hcl".
 
     These configs do not parse, so the units that read them watch fewer paths than they
-    declare. Pass --fail-on-parse-errors=false to generate anyway.
+    declare and a change to those paths triggers no plan.
 
-==== Projects  4 ===========================================================================
-    prod/us-east-1/        (4 projects)
-      live/                (2 projects)
-        mysql              9 paths
-        webserver-cluster  8 paths
-      qa/                  (2 projects)
-        mysql              8 paths
-        webserver-cluster  8 paths
+==== Projects  2 ===========================================================================
+    no project for 1 parent config (--ignore-parent-terragrunt)
+    db   5 paths
+    web  4 paths
 
-==== Done ==================================================================================
-    4 projects from 36 units in 9.4s -> atlantis.yaml
+==== Summary ===============================================================================
+    2 projects from 4 units in 470ms
 ```
 
 `Base state` appears only with `--base-ref`, `Parse errors` only when
@@ -109,6 +106,13 @@ discovery suppressed one. The project list is a path tree: a chain of
 directories holding nothing else collapses into one heading, so a repo with
 its units at the top level renders as a flat list and a deeply nested one as
 a tree.
+
+The counts reconcile, which is what makes the log answer "why is this unit
+not planned": the four discovered units above end up as two projects because
+one carries an `exclude` block covering plan and one references no terraform
+module. `Summary` names what was generated rather than that the file was
+written — the hook writes it after generation, and the target is already
+under `Configuration`.
 
 ## Deleted and renamed files
 
