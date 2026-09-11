@@ -33,7 +33,7 @@ func TestSuppressedParseErrors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("run with --fail-on-parse-errors=false must succeed: %v", err)
 	}
-	for _, want := range []string{"terragrunt suppressed a parse error: reader/terragrunt.hcl:", "settings/missing.hcl", "1 parse error(s) suppressed"} {
+	for _, want := range []string{"==== Parse errors  1 suppressed", "reader/terragrunt.hcl:", "settings/missing.hcl"} {
 		if !strings.Contains(log.String(), want) {
 			t.Errorf("job log lacks %q:\n%s", want, log.String())
 		}
@@ -74,7 +74,7 @@ func TestSuppressedParseErrorsOutsideFilter(t *testing.T) {
 	if _, err := Run(opts); err != nil {
 		t.Fatalf("a parse error outside --filter must not fail the run: %v", err)
 	}
-	if strings.Contains(log.String(), "parse error") {
+	if strings.Contains(log.String(), "==== Parse errors") {
 		t.Errorf("a parse error outside --filter must not be reported:\n%s", log.String())
 	}
 

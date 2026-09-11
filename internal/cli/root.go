@@ -52,8 +52,8 @@ func newGenerateCmd(version string) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			opts.Version = version
 			opts.LogWriter = cmd.ErrOrStderr()
-			fmt.Fprintf(opts.LogWriter, "terragrunt-atlantis-gen %s\n", version)
 			yamlBytes, err := generate.Run(opts)
 			if err != nil {
 				return err

@@ -37,6 +37,8 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 		return fmt.Errorf("--base-ref %q does not resolve to a commit in %s (a branch-strategy checkout needs `git fetch --depth=1 origin <base>` first): %w", opts.BaseRef, topLevel, err)
 	}
 	start := time.Now()
+	log := joblog{opts.LogWriter}
+	log.section("Base state  %s @ %s", opts.BaseRef, commit)
 
 	worktree, err := os.MkdirTemp("", "terragrunt-atlantis-gen-base-*")
 	if err != nil {
@@ -53,7 +55,7 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 	}
 	defer func() {
 		if _, err := gitOutput(topLevel, "worktree", "remove", "--force", worktree); err != nil {
-			opts.logf("removing base worktree: %v", err)
+			log.line(1, "warning: removing the base worktree failed: %v", err)
 		}
 	}()
 
@@ -62,13 +64,12 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 	// to merge.
 	baseRoot := filepath.Join(worktree, filepath.FromSlash(prefix))
 	if info, err := os.Stat(baseRoot); errors.Is(err, fs.ErrNotExist) || (err == nil && !info.IsDir()) {
-		opts.logf("base state %s: %s is not a directory there, every unit is new", commit, filepath.ToSlash(filepath.Clean(prefix)))
+		log.line(1, "%s is not a directory there: every unit is new, nothing to merge", filepath.ToSlash(filepath.Clean(prefix)))
 		return nil
 	} else if err != nil {
 		return err
 	}
 
-	opts.logf("discovering the base state at %s (%s)", opts.BaseRef, commit)
 	baseUnits, suppressed, err := findUnits(opts.TerragruntBin, rootAbs, baseRoot, "--dependencies", "--include", "--reading")
 	if err != nil {
 		return err
@@ -78,6 +79,7 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 	slices.SortFunc(baseUnits, func(a, b Unit) int { return strings.Compare(a.Path, b.Path) })
 	unitsGained, pathsGained := 0, 0
 	var onlyBase []string
+	var gained []row
 	for _, bu := range baseUnits {
 		if bu.Type != "unit" {
 			continue
@@ -136,12 +138,30 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 		pathsGained += len(added)
 		slices.Sort(hu.Reading) // find reports reads sorted; keep that after the union
 		slices.Sort(added)
-		opts.logf("%s also watches (only in %s): %s", bu.Path, opts.BaseRef, strings.Join(added, ", "))
+		// One row per path, the unit named on the first of them: a unit that
+		// gained a dozen paths stays one block instead of one wrapped line.
+		for i, p := range added {
+			label := bu.Path
+			if i > 0 {
+				label = ""
+			}
+			gained = append(gained, row{2, label, "+ " + p})
+		}
 	}
-	for _, p := range onlyBase {
-		opts.logf("%s exists only in %s: no project", p, opts.BaseRef)
+	if len(gained) > 0 {
+		log.line(1, "%s across %s watched only because of the base:", plural(pathsGained, "path"), plural(unitsGained, "unit"))
+		log.table(gained)
 	}
-	opts.logf("base state %s: %d units watch %d more paths, %d units gone, in %s", commit, unitsGained, pathsGained, len(onlyBase), time.Since(start).Round(time.Millisecond))
+	if len(onlyBase) > 0 {
+		log.line(1, "%s only in the base, so no project:", plural(len(onlyBase), "unit"))
+		for _, p := range onlyBase {
+			log.line(2, "%s", p)
+		}
+	}
+	if len(gained) == 0 && len(onlyBase) == 0 {
+		log.line(1, "nothing to merge: the base watches nothing the head does not")
+	}
+	log.line(1, "took %s", since(start))
 	return nil
 }
 
