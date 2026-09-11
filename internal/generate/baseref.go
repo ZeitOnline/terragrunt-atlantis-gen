@@ -23,7 +23,11 @@ import (
 // detached worktree of the base ref, and a unit watches everything it read
 // in either state. Units that exist only in the base get nothing: Atlantis
 // cannot plan a directory that is gone.
-func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseErrs *parseErrors) error {
+//
+// Every unit is merged, but only the units in eligible — the ones this run may
+// build a project for — are reported: a path gained by a unit that --filter or
+// an exclude block drops reaches no when_modified entry.
+func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, eligible map[string]bool, parseErrs *parseErrors) error {
 	topLevel, err := gitOutput(rootAbs, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return fmt.Errorf("--base-ref needs the root inside a git work tree: %w", err)
@@ -65,6 +69,7 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 	baseRoot := filepath.Join(worktree, filepath.FromSlash(prefix))
 	if info, err := os.Stat(baseRoot); errors.Is(err, fs.ErrNotExist) || (err == nil && !info.IsDir()) {
 		log.line(1, "%s is not a directory there: every unit is new, nothing to merge", filepath.ToSlash(filepath.Clean(prefix)))
+		log.line(1, "took %s", since(start))
 		return nil
 	} else if err != nil {
 		return err
@@ -140,9 +145,12 @@ func mergeBaseState(opts Options, rootAbs string, units map[string]*Unit, parseE
 		if len(added) == 0 {
 			continue
 		}
+		slices.Sort(hu.Reading) // find reports reads sorted; keep that after the union
+		if !eligible[bu.Path] {
+			continue
+		}
 		unitsGained++
 		pathsGained += len(added)
-		slices.Sort(hu.Reading) // find reports reads sorted; keep that after the union
 		slices.Sort(added)
 		// One row per path, the unit named on the first of them: a unit that
 		// gained a dozen paths stays one block instead of one wrapped line.

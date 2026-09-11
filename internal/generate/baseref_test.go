@@ -64,7 +64,8 @@ func TestMergeBaseStateRootMissingInBase(t *testing.T) {
 	}
 	var log bytes.Buffer
 	units := map[string]*Unit{"unit": {Type: "unit", Path: "unit", Reading: []string{"x.hcl"}}}
-	if err := mergeBaseState(Options{BaseRef: "base", LogWriter: &log}, root, units, &parseErrors{}); err != nil {
+	eligible := map[string]bool{"unit": true}
+	if err := mergeBaseState(Options{BaseRef: "base", LogWriter: &log}, root, units, eligible, &parseErrors{}); err != nil {
 		t.Fatalf("base pass must skip a root missing in the base, got: %v", err)
 	}
 	if got := units["unit"].Reading; len(got) != 1 || got[0] != "x.hcl" {
@@ -72,6 +73,11 @@ func TestMergeBaseStateRootMissingInBase(t *testing.T) {
 	}
 	if !strings.Contains(log.String(), "added is not a directory there") {
 		t.Errorf("log does not say why the base pass was skipped:\n%s", log.String())
+	}
+	// Creating the worktree is the slow part and happens before the skip, so
+	// the section reports its time on this path too.
+	if !strings.Contains(log.String(), "took ") {
+		t.Errorf("the skipped base pass omits its elapsed time:\n%s", log.String())
 	}
 	out, _ := exec.Command("git", "-C", repo, "worktree", "list").Output()
 	if lines := strings.Count(strings.TrimSpace(string(out)), "\n"); lines != 0 {
@@ -126,7 +132,7 @@ dependency "dep" {
 		}}
 		var log bytes.Buffer
 		opts := Options{BaseRef: "base", TerragruntBin: bin, IgnoreDependencyBlocks: tc.ignore, LogWriter: &log}
-		if err := mergeBaseState(opts, root, units, &parseErrors{}); err != nil {
+		if err := mergeBaseState(opts, root, units, map[string]bool{"consumer": true}, &parseErrors{}); err != nil {
 			t.Fatalf("--ignore-dependency-blocks=%v: %v", tc.ignore, err)
 		}
 		if got := strings.Contains(log.String(), "+ dep/"); got != tc.reported {
@@ -136,6 +142,68 @@ dependency "dep" {
 		if !slices.Contains(units["consumer"].Dependencies, "dep") {
 			t.Errorf("--ignore-dependency-blocks=%v dropped the base dependency from the union: %v",
 				tc.ignore, units["consumer"].Dependencies)
+		}
+	}
+}
+
+// A unit that --filter or an exclude block drops builds no project, so a path
+// it gained from the base reaches no when_modified entry: the section must not
+// count it. The merge still runs, so nothing about the state is lost.
+func TestMergeBaseStateScopedToEligibleUnits(t *testing.T) {
+	bin := os.Getenv("TERRAGRUNT_BIN")
+	if bin == "" {
+		bin = "terragrunt"
+	}
+	repo := t.TempDir()
+	git, writeFile := gitIn(t, repo), writeIn(t, repo)
+	writeFile("root.hcl", "")
+	for _, unit := range []string{"planned", "dropped"} {
+		writeFile("settings/"+unit+".hcl", "locals {}\n")
+		writeFile(unit+"/terragrunt.hcl", `include "root" {
+  path = find_in_parent_folders("root.hcl")
+}
+
+locals {
+  s = read_terragrunt_config("${get_parent_terragrunt_dir()}/settings/`+unit+`.hcl")
+}
+`)
+	}
+	git("init", "-q")
+	git("add", "-A")
+	git("commit", "-q", "-m", "base")
+
+	root, err := filepath.EvalSymlinks(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Both units read a settings file in the base and neither does in the head.
+	units := map[string]*Unit{}
+	for _, unit := range []string{"planned", "dropped"} {
+		units[unit] = &Unit{
+			Type:    "unit",
+			Path:    unit,
+			Include: map[string]string{"root": "root.hcl"},
+			Reading: []string{"root.hcl"},
+		}
+	}
+	var log bytes.Buffer
+	opts := Options{BaseRef: "base", TerragruntBin: bin, LogWriter: &log}
+	if err := mergeBaseState(opts, root, units, map[string]bool{"planned": true}, &parseErrors{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(log.String(), "settings/planned.hcl") {
+		t.Errorf("the planned unit's gained path is missing:\n%s", log.String())
+	}
+	if strings.Contains(log.String(), "settings/dropped.hcl") {
+		t.Errorf("a unit with no project must not be reported as watching more:\n%s", log.String())
+	}
+	if !strings.Contains(log.String(), "1 path across 1 unit") {
+		t.Errorf("the counts must cover the reported unit only:\n%s", log.String())
+	}
+	// Merged all the same: the Unit stays a faithful union of both states.
+	for _, unit := range []string{"planned", "dropped"} {
+		if !slices.Contains(units[unit].Reading, "settings/"+unit+".hcl") {
+			t.Errorf("%s did not get the base read merged: %v", unit, units[unit].Reading)
 		}
 	}
 }
