@@ -139,7 +139,7 @@ func Run(opts Options) ([]byte, error) {
 		{"root", rootAbs},
 		// Version first: a long binary path must not push it onto a
 		// continuation line, it is what decides discovery semantics.
-		{"terragrunt", fmt.Sprintf("%s at %s", terragruntVersion(opts.TerragruntBin), opts.TerragruntBin)},
+		{"terragrunt", fmt.Sprintf("%s at %s", terragruntVersion(opts.TerragruntBin, rootAbs), opts.TerragruntBin)},
 		{"output", output},
 	}
 	if len(opts.FilterPaths) > 0 {
@@ -247,7 +247,7 @@ func Run(opts Options) ([]byte, error) {
 		config.Projects = oldConfig.Projects
 	}
 
-	parents := 0
+	parents, built := 0, 0
 	for _, path := range kept {
 		project, err := b.createProject(path)
 		if err != nil {
@@ -257,6 +257,7 @@ func Run(opts Options) ([]byte, error) {
 			parents++
 			continue
 		}
+		built++
 		if opts.PreserveProjects {
 			updated := false
 			for i := range config.Projects {
@@ -292,8 +293,17 @@ func Run(opts Options) ([]byte, error) {
 	// The caller still has to persist the bytes, so this reports what was
 	// generated and never that the target named in Configuration was written.
 	log.section("Summary")
-	log.line(1, "%s from %s in %s",
-		plural(len(config.Projects), "project"), plural(len(b.units), "unit"), since(start))
+	// --preserve-projects carries over entries of the previous output that no
+	// discovered unit replaced; they are in the total but came from no unit,
+	// so the counts only reconcile once they are named apart.
+	if preserved := len(config.Projects) - built; preserved > 0 {
+		log.line(1, "%s in %s", plural(len(config.Projects), "project"), since(start))
+		log.line(2, "%s built from %s", plural(built, "project"), plural(len(b.units), "unit"))
+		log.line(2, "%s preserved from the previous output (--preserve-projects)", plural(preserved, "project"))
+	} else {
+		log.line(1, "%s from %s in %s",
+			plural(len(config.Projects), "project"), plural(len(b.units), "unit"), since(start))
+	}
 
 	if strings.Contains(runtime.GOOS, "windows") {
 		yamlBytes = bytes.ReplaceAll(yamlBytes, []byte("\n"), []byte("\r\n"))
@@ -622,9 +632,14 @@ func sortedIncludePaths(byLabel map[string]string) []string {
 }
 
 // terragruntVersion asks the binary once, for the job log — the server's
-// Terragrunt version decides glob and discovery semantics.
-func terragruntVersion(bin string) string {
-	out, err := exec.Command(bin, "--version").Output()
+// Terragrunt version decides glob and discovery semantics. It runs in dir,
+// the directory discovery runs in (see findUnits): a version-manager shim
+// resolves the binary by working directory, so probing anywhere else can name
+// a different binary than the one that does the work.
+func terragruntVersion(bin, dir string) string {
+	cmd := exec.Command(bin, "--version")
+	cmd.Dir = dir
+	out, err := cmd.Output()
 	if err != nil {
 		return "unknown version"
 	}

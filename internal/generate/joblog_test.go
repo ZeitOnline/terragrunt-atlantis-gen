@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -154,5 +155,68 @@ func TestRunLogsGeneratorVersion(t *testing.T) {
 	}
 	if !strings.Contains(log.String(), "terragrunt-atlantis-gen v9.9.9") {
 		t.Errorf("job log does not name the generator version:\n%s", log.String())
+	}
+}
+
+// The version probe must run where discovery runs: a version-manager shim
+// resolves the binary by working directory, so probing in the process's own
+// directory can name a different binary than the one that does the work — or
+// none at all.
+func TestTerragruntVersionRunsInTheRoot(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the stand-in binary is a shell script")
+	}
+	bin := filepath.Join(t.TempDir(), "terragrunt")
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\necho \"terragrunt version $(pwd)\"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := terragruntVersion(bin, root); got != root {
+		t.Errorf("the probe ran in %q, want the root %q", got, root)
+	}
+}
+
+// --preserve-projects carries over entries of the previous output that no unit
+// produced. Counting them into "N projects from M units" would state a
+// provenance they do not have.
+func TestRunLogsPreservedProjectsApart(t *testing.T) {
+	bin := os.Getenv("TERRAGRUNT_BIN")
+	if bin == "" {
+		bin = "terragrunt"
+	}
+	root, err := filepath.Abs(filepath.Join("..", "..", "testdata", "fixtures", "basic_module"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "atlantis.yaml")
+	previous := `projects:
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+  dir: someDir
+  name: projectFromPreviousRun
+`
+	if err := os.WriteFile(out, []byte(previous), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var log bytes.Buffer
+	opts := Options{
+		Root: root, TerragruntBin: bin, IgnoreParentTerragrunt: true,
+		PreserveProjects: true, OutputPath: out, LogWriter: &log,
+	}
+	if _, err := Run(opts); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"2 projects in ", "1 project built from 1 unit", "1 project preserved from the previous output"} {
+		if !strings.Contains(log.String(), want) {
+			t.Errorf("summary lacks %q:\n%s", want, log.String())
+		}
+	}
+	if strings.Contains(log.String(), "2 projects from 1 unit") {
+		t.Errorf("a preserved project must not be claimed to come from a unit:\n%s", log.String())
 	}
 }

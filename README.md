@@ -113,7 +113,9 @@ one carries an `exclude` block covering plan and one references no terraform
 module. `Base state` counts only units the run may build a project for — one
 outside `--filter` or carrying an `exclude` block still has its base state
 merged, but a path it gained cannot reach the output, so reporting it would
-overstate what the config watches. `Summary` names what was generated rather
+overstate what the config watches. With `--preserve-projects`, entries carried
+over from the previous output are counted apart, since no discovered unit
+produced them. `Summary` names what was generated rather
 than that the file was written — the hook writes it after generation, and the
 target is already under `Configuration`.
 
