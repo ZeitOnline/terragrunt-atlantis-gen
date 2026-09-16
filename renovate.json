@@ -1,6 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "dependencyDashboard": true,
+  "extends": [
+    "github>zeitonline/renovate-config//ops/default",
+    "github>zeitonline/renovate-config//ops/ghaAutomergeNonMajor",
+    "github>zeitonline/renovate-config//ops/regexDefault",
+    "github>zeitonline/renovate-config//ops/maintenanceDaySchedule"
+  ],
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "lockFileMaintenance": { "enabled": true },
@@ -18,6 +23,11 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "Enable gomod manager",
+      "matchManagers": ["gomod"],
+      "enabled": true
+    },
     {
       "description": "Group (minor) Go package updates into single PRs",
       "groupName": "gomod",
