@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.5.0...v0.6.0) (2026-09-16)
+
+
+### Features
+
+* write the instance-wide keys only when asked ([73bd43b](https://github.com/ZeitOnline/terragrunt-atlantis-gen/commit/73bd43bfad6e30dc5d9e77f3b3123ef210b7e14c))
+
 ## [0.5.0](https://github.com/ZeitOnline/terragrunt-atlantis-gen/compare/v0.4.0...v0.5.0) (2026-09-11)
 
 
