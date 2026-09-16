@@ -37,6 +37,7 @@ func newGenerateCmd(version string) *cobra.Command {
 	var createParentProject bool
 	var projectHclFiles []string
 	var useProjectMarkers bool
+	var autoMerge, parallel bool
 
 	cmd := &cobra.Command{
 		Use:   "generate",
@@ -54,6 +55,16 @@ func newGenerateCmd(version string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Version = version
 			opts.LogWriter = cmd.ErrOrStderr()
+			// The config states these two only when asked to: whatever it
+			// states beats the Atlantis instance's own --automerge,
+			// --parallel-plan and --parallel-apply, so writing them
+			// unasked would silence the instance's setting.
+			if cmd.Flags().Changed("automerge") {
+				opts.AutoMerge = &autoMerge
+			}
+			if cmd.Flags().Changed("parallel") {
+				opts.Parallel = &parallel
+			}
 			yamlBytes, err := generate.Run(opts)
 			if err != nil {
 				return err
@@ -73,11 +84,11 @@ func newGenerateCmd(version string) *cobra.Command {
 
 	f := cmd.PersistentFlags()
 	f.BoolVar(&opts.AutoPlan, "autoplan", false, "Enable auto plan. Default is disabled")
-	f.BoolVar(&opts.AutoMerge, "automerge", false, "Enable auto merge. Default is disabled")
+	f.BoolVar(&autoMerge, "automerge", false, "Write the automerge key. Default is to write no key, leaving auto merge to the Atlantis instance")
 	f.BoolVar(&opts.IgnoreParentTerragrunt, "ignore-parent-terragrunt", true, "Ignore parent terragrunt configs (those which don't reference a terraform module). Default is enabled")
 	f.BoolVar(&createParentProject, "create-parent-project", false, "Accepted for compatibility; terragrunt-atlantis-config never reads it")
 	f.BoolVar(&opts.IgnoreDependencyBlocks, "ignore-dependency-blocks", false, "When true, dependencies found in `dependency` blocks will be ignored")
-	f.BoolVar(&opts.Parallel, "parallel", true, "Enables plans and applys to happen in parallel. Default is enabled")
+	f.BoolVar(&parallel, "parallel", false, "Write the parallel_plan and parallel_apply keys. Default is to write no keys, leaving parallelism to the Atlantis instance")
 	f.BoolVar(&opts.CreateWorkspace, "create-workspace", false, "Use different workspace for each project. Default is use default workspace")
 	f.BoolVar(&opts.CreateProjectName, "create-project-name", false, "Add different name for each project. Default is false")
 	f.BoolVar(&opts.PreserveWorkflows, "preserve-workflows", true, "Preserves workflows from old output files. Default is true")

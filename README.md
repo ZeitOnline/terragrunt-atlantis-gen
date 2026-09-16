@@ -12,6 +12,15 @@ The wrapper reproduces TAC's output for the surface ZeitOnline actually uses:
 dependency discovery, declared file dependencies (as `mark_as_read`), local
 module inspection, and the flags the pre-workflow hooks pass.
 
+The three instance-wide keys — `automerge`, `parallel_plan`, `parallel_apply`
+— are written only when the hook passes `--automerge` or `--parallel`; TAC
+writes all three on every run. They are Atlantis policy, not repo structure,
+and in Atlantis a key present in `atlantis.yaml` beats the server's
+`--automerge` / `--parallel-plan` / `--parallel-apply` whatever its value
+(v0.47.1, `server/events/project_command_builder.go`), so a default written
+unasked disables the instance's own setting. None of the three is covered by
+`allowed_overrides`, so the server cannot refuse one either.
+
 Skipping a unit is Terragrunt-native: a unit whose evaluated `exclude` block
 covers `plan` (actions `all` or `plan`) gets no Atlantis project. The block
 lives in the unit — or in an included parent to hide a whole subtree; a child
@@ -229,12 +238,13 @@ the `atlantis.yaml` the wrapper must produce, byte for byte. A case is a
 fixture under `testdata/fixtures/` plus generate flags, named
 `<fixture>[_<flag variant>]`.
 
-The goldens encode the output of TAC **v2.25.1** (ZeitOnline fork) with two
+The goldens encode the output of TAC **v2.25.1** (ZeitOnline fork) with three
 deliberate differences: `when_modified` lists includes and reads sorted by
-path — `terragrunt find` reports neither in declaration order — and it
-includes the files a unit genuinely reads via `read_terragrunt_config`, which
-TAC never saw. Bucket order, local module globs and project naming are TAC's,
-so a repo switching its pre-workflow hook sees no other change.
+path — `terragrunt find` reports neither in declaration order — it includes
+the files a unit genuinely reads via `read_terragrunt_config`, which TAC
+never saw, and the instance-wide keys are absent unless the case asks for
+them (see Scope). Bucket order, local module globs and project naming are
+TAC's, so a repo switching its pre-workflow hook sees no other change.
 
 The fixtures derive from TAC's `test/fixtures/` (MIT license in
 `testdata/LICENSE-fixtures`), reduced to the wrapper's scope and written the
@@ -382,8 +392,9 @@ configuration.
 Run the wrapper with the flags from the pre-workflow hook and check that
 every path the removed locals declared appears in `when_modified` of the
 units that declared it. Where the last TAC-generated `atlantis.yaml` is at
-hand, diff the two: apart from the sorted order of `when_modified` and the
-files units read via `read_terragrunt_config`, they must match.
+hand, diff the two: apart from the sorted order of `when_modified`, the files
+units read via `read_terragrunt_config` and the instance-wide keys, they must
+match.
 
 ```sh
 terragrunt-atlantis-gen generate --output atlantis.yaml <hook flags>

@@ -1,3 +1,5 @@
+parallel_apply: true
+parallel_plan: true
 projects:
 - autoplan:
     enabled: false
@@ -6,11 +8,4 @@ projects:
     - '*.tf*'
     - '*.tofu*'
   dir: .
-- autoplan:
-    enabled: false
-    when_modified:
-    - '*.hcl'
-    - '*.tf*'
-  dir: someDir
-  name: projectFromPreviousRun
 version: 3

@@ -2,6 +2,8 @@
 // (TAC) would produce, from `terragrunt find --json` instead of parsed HCL.
 // The output logic is ported from TAC v2.25.1 cmd/generate.go so the result
 // stays byte-compatible; the goldens in testdata/goldens are the contract.
+// The instance-wide keys are the documented exception: they are written only
+// when the caller asks for them (see Options.AutoMerge).
 package generate
 
 import (
@@ -26,8 +28,6 @@ type Options struct {
 	TerragruntBin string
 
 	AutoPlan               bool
-	AutoMerge              bool
-	Parallel               bool
 	IgnoreParentTerragrunt bool
 	IgnoreDependencyBlocks bool
 	CascadeDependencies    bool
@@ -37,6 +37,14 @@ type Options struct {
 	PreserveProjects       bool
 	ExecutionOrderGroups   bool
 	DependsOn              bool
+
+	// AutoMerge and Parallel decide instance-wide Atlantis behaviour, not
+	// what a project watches. Nil leaves the key out of the config and the
+	// Atlantis instance's own --automerge / --parallel-plan /
+	// --parallel-apply decides; a key that is written wins over the
+	// instance, false included.
+	AutoMerge *bool
+	Parallel  *bool
 
 	DefaultWorkflow          string
 	DefaultTerraformVersion  string
@@ -64,9 +72,9 @@ type Options struct {
 // via the same JSON tags — byte compatibility by construction.
 type AtlantisConfig struct {
 	Version       int               `json:"version"`
-	AutoMerge     bool              `json:"automerge"`
-	ParallelPlan  bool              `json:"parallel_plan"`
-	ParallelApply bool              `json:"parallel_apply"`
+	AutoMerge     *bool             `json:"automerge,omitempty"`
+	ParallelPlan  *bool             `json:"parallel_plan,omitempty"`
+	ParallelApply *bool             `json:"parallel_apply,omitempty"`
 	Projects      []AtlantisProject `json:"projects,omitempty"`
 	Workflows     interface{}       `json:"workflows,omitempty"`
 }
