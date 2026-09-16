@@ -45,6 +45,9 @@ var pullRequest = &History{
 
 var Cases = []Case{
 	{Name: "basic_module", Fixture: "basic_module"},
+	// The instance-wide keys are written only on request: absent from
+	// basic_module above, both spellings pinned here.
+	{Name: "basic_module_parallel", Fixture: "basic_module", Flags: []string{"--parallel"}},
 	{Name: "basic_module_parallel_false", Fixture: "basic_module", Flags: []string{"--parallel=false"}},
 	{Name: "basic_module_autoplan", Fixture: "basic_module", Flags: []string{"--autoplan"}},
 	{Name: "basic_module_automerge", Fixture: "basic_module", Flags: []string{"--automerge"}},

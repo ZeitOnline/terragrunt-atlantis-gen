@@ -226,32 +226,39 @@ func plural(n int, noun string) string {
 }
 
 // settings lists the behaviour the run was configured with, so a job log
-// answers on its own why the output looks the way it does. Booleans appear
-// only when enabled, in their flag spelling.
+// answers on its own why the output looks the way it does. Flags appear in
+// their flag spelling, and only when they are in effect.
 func (o Options) settings() string {
 	var s []string
-	for _, f := range []struct {
-		name string
-		on   bool
-	}{
-		{"autoplan", o.AutoPlan},
-		{"automerge", o.AutoMerge},
-		{"parallel", o.Parallel},
-		{"create-workspace", o.CreateWorkspace},
-		{"create-project-name", o.CreateProjectName},
-		{"execution-order-groups", o.ExecutionOrderGroups},
-		{"depends-on", o.DependsOn},
-		{"cascade-dependencies", o.CascadeDependencies},
-		{"ignore-parent-terragrunt", o.IgnoreParentTerragrunt},
-		{"ignore-dependency-blocks", o.IgnoreDependencyBlocks},
-		{"preserve-workflows", o.PreserveWorkflows},
-		{"preserve-projects", o.PreserveProjects},
-		{"fail-on-parse-errors", o.FailOnParseErrors},
-	} {
-		if f.on {
-			s = append(s, f.name)
+	on := func(name string, enabled bool) {
+		if enabled {
+			s = append(s, name)
 		}
 	}
+	// The instance-wide keys have a third state: unset, which writes no key
+	// at all. Spelling the off state out keeps it apart from that.
+	instance := func(name string, v *bool) {
+		switch {
+		case v == nil:
+		case *v:
+			s = append(s, name)
+		default:
+			s = append(s, name+"=false")
+		}
+	}
+	on("autoplan", o.AutoPlan)
+	instance("automerge", o.AutoMerge)
+	instance("parallel", o.Parallel)
+	on("create-workspace", o.CreateWorkspace)
+	on("create-project-name", o.CreateProjectName)
+	on("execution-order-groups", o.ExecutionOrderGroups)
+	on("depends-on", o.DependsOn)
+	on("cascade-dependencies", o.CascadeDependencies)
+	on("ignore-parent-terragrunt", o.IgnoreParentTerragrunt)
+	on("ignore-dependency-blocks", o.IgnoreDependencyBlocks)
+	on("preserve-workflows", o.PreserveWorkflows)
+	on("preserve-projects", o.PreserveProjects)
+	on("fail-on-parse-errors", o.FailOnParseErrors)
 	if o.DefaultWorkflow != "" {
 		s = append(s, "workflow="+o.DefaultWorkflow)
 	}
