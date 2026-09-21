@@ -14,7 +14,7 @@ jobs:
       # The Terragrunt the goldens are replayed against: the version the
       # Atlantis image runs, never whatever the runner image happens to ship.
       # renovate: datasource=github-releases depName=gruntwork-io/terragrunt
-      TERRAGRUNT_VERSION: v1.1.4
+      TERRAGRUNT_VERSION: v1.1.6
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       - name: Setup golang
