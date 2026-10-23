@@ -74,7 +74,7 @@ one:
 
 ==== Configuration =========================================================================
     root        /home/atlantis/repos/ZeitOnline/terraform-infra/1234/default
-    terragrunt  v1.1.4 at /usr/local/bin/terragrunt
+    terragrunt  v1.2.0 at /usr/local/bin/terragrunt
     output      atlantis.yaml
     base ref    origin/main
     settings    autoplan, parallel, cascade-dependencies, ignore-parent-terragrunt,
@@ -173,7 +173,7 @@ the job log's `Base state` section.
 
 ## Upstream requests
 
-Four Terragrunt changes would let the wrapper drop workarounds. Each entry
+Three Terragrunt changes would let the wrapper drop workarounds. Each entry
 names the interim that applies until the change ships.
 
 - [gruntwork-io/terragrunt#6859](https://github.com/gruntwork-io/terragrunt/issues/6859):
@@ -207,15 +207,10 @@ names the interim that applies until the change ships.
   `dependency` outputs, so it needs state access on every hook run, and it
   fails on terraform-infra's cluster-infra configs with an output-parsing
   error.
-- [gruntwork-io/terragrunt#6863](https://github.com/gruntwork-io/terragrunt/issues/6863):
-  `find --reading` resolving a relative `terraform.source` inherited through
-  `include` against the unit, as a run does. With it, the explicit module
-  marks such repos carry today (keycloak) go. Interim: the trap in the
-  runbook, an absolute source or an explicit mark.
 
 ## Development
 
-Go, [Task](https://taskfile.dev/) and Terragrunt ≥ 1.1 on the PATH; the git
+Go, [Task](https://taskfile.dev/) and Terragrunt ≥ 1.2 on the PATH; the git
 hooks need [lefthook](https://lefthook.dev/), installed once with `task setup`.
 
 ```sh
@@ -266,7 +261,7 @@ task test
 ```
 
 `internal/goldens` builds the wrapper binary and replays every case through
-the real CLI against its golden — byte for byte. Terragrunt ≥ 1.1 must be on
+the real CLI against its golden — byte for byte. Terragrunt ≥ 1.2 must be on
 the PATH. The history cases run in temporary repositories, where a
 version-manager shim that only resolves inside configured directories does
 not work: for mise, `task test` points `TERRAGRUNT_BIN` at the binary behind
@@ -318,12 +313,12 @@ locals {
   string and would silently mark the wrong path.
 
 Files a config already reads natively — `read_terragrunt_config()`,
-`read_tfvars_file()`, `sops_decrypt_file()`, a local `terraform.source` —
-appear in `reading` on their own and need no mark. `file()` does **not**
-register a read (verified on Terragrunt v1.1.0); keep a mark for anything
-only `file()` touches.
+`read_tfvars_file()`, `sops_decrypt_file()`, `file()`, `templatefile()`,
+`fileset()`, `fileexists()`, the `filesha*()` functions, a local
+`terraform.source`, also one inherited through `include` — appear in
+`reading` on their own and need no mark.
 
-Traps (verified on Terragrunt v1.1.0):
+Traps (verified on Terragrunt v1.2.0):
 
 - **Mark every `**` glob with and without its `**` segment**, as in the
   example above: terragrunt's `**/` requires at least one directory,
@@ -338,15 +333,6 @@ Traps (verified on Terragrunt v1.1.0):
 - **One `locals` block per config.** `find` suppresses parse errors during
   discovery, so a duplicate `locals` block silently drops every mark in the
   file — merge marks into the existing block.
-- **A relative `terraform.source` in an included config is not marked**
-  (`../modules//x`, `${path_relative_from_include()}/modules//x`): `find`
-  resolves it against the included file while a run resolves it against the
-  unit, so the module's files never reach `reading` (Terragrunt v1.1.0 to
-  v1.1.4, [#6863](https://github.com/gruntwork-io/terragrunt/issues/6863)).
-  Sources built from `get_repo_root()`, `get_parent_terragrunt_dir()`,
-  `path_relative_to_include()` or `dirname(find_in_parent_folders(...))` are
-  marked. Rewrite the source in one of those forms, or mark the module tree
-  explicitly in the config that declares it.
 
 ### 2. Mirror var-files
 
