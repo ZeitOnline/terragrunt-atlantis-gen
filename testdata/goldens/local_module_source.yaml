@@ -35,6 +35,23 @@ projects:
     - '*.hcl'
     - '*.tf*'
     - '*.tofu*'
+    - ../root.hcl
+    - ../source.hcl
+    - ../modules/root/*.tf*
+    - ../modules/root/*.tofu*
+    - ../modules/another/*.tf*
+    - ../modules/another/*.tofu*
+    - ../modules/shared/*.tf*
+    - ../modules/shared/*.tofu*
+    - ../modules/shared/nested/*.tf*
+    - ../modules/shared/nested/*.tofu*
+  dir: inherited
+- autoplan:
+    enabled: false
+    when_modified:
+    - '*.hcl'
+    - '*.tf*'
+    - '*.tofu*'
     - ../modules/root/*.tf*
     - ../modules/root/*.tofu*
     - ../modules/another/*.tf*

@@ -487,10 +487,6 @@ func (b *builder) dependencies(path string) ([]string, error) {
 }
 
 func (b *builder) createProject(path string) (*AtlantisProject, error) {
-	u := b.units[path]
-	if u.Exclude.ExcludesPlan() {
-		return nil, nil
-	}
 	deps, err := b.dependencies(path)
 	if err != nil {
 		return nil, err

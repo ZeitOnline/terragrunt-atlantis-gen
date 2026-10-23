@@ -86,7 +86,7 @@ type logLine struct {
 	Msg   string `json:"msg"`
 }
 
-// suppressedParse matches the three wordings terragrunt v1.1 uses
+// suppressedParse matches the three wordings terragrunt v1.1 and v1.2 use
 // (internal/discovery/phase_parse.go, discovery.go): "Suppressed parsing
 // errors <file>:<pos>: ..." for HCL diagnostics, "Suppressed parse error for
 // <dir>: ..." and "Suppressing parse error for <file>: ..." for a config
