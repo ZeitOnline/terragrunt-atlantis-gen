@@ -36,10 +36,10 @@ exclude {
 
 Note the native semantics: an `exclude` block also removes the unit from
 `terragrunt run --all` — it declares "nothing runs this unit automatically",
-not just "Atlantis ignores it". The wrapper inspects the merged `exclude`
-field from `find` rather than `--queue-construct-as` filtering, because queue
-construction does not honour a child's `if = false` override of an inherited
-block (verified on Terragrunt v1.1.0).
+not just "Atlantis ignores it". The wrapper reads the merged `exclude` field
+from `find` instead of letting `--queue-construct-as plan` drop the units: an
+excluded unit stays known, so the job log can name it and the base-ref pass
+can tell it apart from a unit that is gone.
 
 The `atlantis_*` settings locals and marker mode are deliberately dropped:
 
